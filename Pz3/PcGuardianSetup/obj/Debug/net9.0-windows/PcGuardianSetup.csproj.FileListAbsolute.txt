@@ -1,0 +1,14 @@
+C:\Users\kavik\Desktop\Pz3\PcGuardianSetup\bin\Debug\net9.0-windows\PcGuardianSetup.exe
+C:\Users\kavik\Desktop\Pz3\PcGuardianSetup\bin\Debug\net9.0-windows\PcGuardianSetup.deps.json
+C:\Users\kavik\Desktop\Pz3\PcGuardianSetup\bin\Debug\net9.0-windows\PcGuardianSetup.runtimeconfig.json
+C:\Users\kavik\Desktop\Pz3\PcGuardianSetup\bin\Debug\net9.0-windows\PcGuardianSetup.dll
+C:\Users\kavik\Desktop\Pz3\PcGuardianSetup\bin\Debug\net9.0-windows\PcGuardianSetup.pdb
+C:\Users\kavik\Desktop\Pz3\PcGuardianSetup\obj\Debug\net9.0-windows\PcGuardianSetup.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\kavik\Desktop\Pz3\PcGuardianSetup\obj\Debug\net9.0-windows\PcGuardianSetup.AssemblyInfoInputs.cache
+C:\Users\kavik\Desktop\Pz3\PcGuardianSetup\obj\Debug\net9.0-windows\PcGuardianSetup.AssemblyInfo.cs
+C:\Users\kavik\Desktop\Pz3\PcGuardianSetup\obj\Debug\net9.0-windows\PcGuardianSetup.csproj.CoreCompileInputs.cache
+C:\Users\kavik\Desktop\Pz3\PcGuardianSetup\obj\Debug\net9.0-windows\PcGuardianSetup.dll
+C:\Users\kavik\Desktop\Pz3\PcGuardianSetup\obj\Debug\net9.0-windows\refint\PcGuardianSetup.dll
+C:\Users\kavik\Desktop\Pz3\PcGuardianSetup\obj\Debug\net9.0-windows\PcGuardianSetup.pdb
+C:\Users\kavik\Desktop\Pz3\PcGuardianSetup\obj\Debug\net9.0-windows\PcGuardianSetup.genruntimeconfig.cache
+C:\Users\kavik\Desktop\Pz3\PcGuardianSetup\obj\Debug\net9.0-windows\ref\PcGuardianSetup.dll
