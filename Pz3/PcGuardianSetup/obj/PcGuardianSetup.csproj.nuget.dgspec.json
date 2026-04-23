@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\kavik\\Desktop\\Pz3\\PcGuardianSetup\\PcGuardianSetup.csproj": {}
+    "C:\\Users\\kavik\\Documents\\GitHub\\antivirus\\Pz3\\PcGuardianSetup\\PcGuardianSetup.csproj": {}
   },
   "projects": {
-    "C:\\Users\\kavik\\Desktop\\Pz3\\PcGuardianSetup\\PcGuardianSetup.csproj": {
+    "C:\\Users\\kavik\\Documents\\GitHub\\antivirus\\Pz3\\PcGuardianSetup\\PcGuardianSetup.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\kavik\\Desktop\\Pz3\\PcGuardianSetup\\PcGuardianSetup.csproj",
+        "projectUniqueName": "C:\\Users\\kavik\\Documents\\GitHub\\antivirus\\Pz3\\PcGuardianSetup\\PcGuardianSetup.csproj",
         "projectName": "PcGuardianSetup",
-        "projectPath": "C:\\Users\\kavik\\Desktop\\Pz3\\PcGuardianSetup\\PcGuardianSetup.csproj",
+        "projectPath": "C:\\Users\\kavik\\Documents\\GitHub\\antivirus\\Pz3\\PcGuardianSetup\\PcGuardianSetup.csproj",
         "packagesPath": "C:\\Users\\kavik\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\kavik\\Desktop\\Pz3\\PcGuardianSetup\\obj\\",
+        "outputPath": "C:\\Users\\kavik\\Documents\\GitHub\\antivirus\\Pz3\\PcGuardianSetup\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
