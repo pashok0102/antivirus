@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PcGuardianSetup")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f3bfb82be63cf98bca8907967e4a917172bc4f9c")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d124b4008241c9df6438b7f4fd7238985bd836ff")]
 [assembly: System.Reflection.AssemblyProductAttribute("PcGuardianSetup")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PcGuardianSetup")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
