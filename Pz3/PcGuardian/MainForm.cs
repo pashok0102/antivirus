@@ -1,43 +1,53 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
+using System.Drawing.Drawing2D;
 using System.Text.Json;
 
 namespace PcGuardian;
 
 public sealed class MainForm : Form
 {
-    private static readonly Color Background = Color.FromArgb(232, 238, 246);
-    private static readonly Color Surface = Color.FromArgb(246, 249, 252);
-    private static readonly Color SurfaceSoft = Color.FromArgb(239, 244, 249);
-    private static readonly Color Ink = Color.FromArgb(31, 41, 55);
-    private static readonly Color Muted = Color.FromArgb(96, 112, 132);
-    private static readonly Color Navy = Color.FromArgb(24, 34, 52);
-    private static readonly Color NavySoft = Color.FromArgb(35, 49, 72);
-    private static readonly Color Cyan = Color.FromArgb(54, 166, 176);
+    private static readonly Color LightBackground = Color.FromArgb(232, 238, 246);
+    private static readonly Color LightSurface = Color.FromArgb(247, 250, 252);
+    private static readonly Color LightSurfaceAlt = Color.FromArgb(240, 245, 250);
+    private static readonly Color LightText = Color.FromArgb(30, 41, 59);
+    private static readonly Color LightMuted = Color.FromArgb(100, 116, 139);
+
+    private static readonly Color DarkBackground = Color.FromArgb(16, 23, 35);
+    private static readonly Color DarkSurface = Color.FromArgb(24, 34, 52);
+    private static readonly Color DarkSurfaceAlt = Color.FromArgb(37, 51, 76);
+    private static readonly Color DarkText = Color.FromArgb(241, 245, 249);
+    private static readonly Color DarkMuted = Color.FromArgb(166, 180, 200);
+
+    private static readonly Color Cyan = Color.FromArgb(38, 185, 193);
     private static readonly Color Blue = Color.FromArgb(58, 120, 204);
-    private static readonly Color Green = Color.FromArgb(34, 132, 98);
-    private static readonly Color Red = Color.FromArgb(196, 88, 88);
-    private static readonly Color Amber = Color.FromArgb(193, 136, 48);
+    private static readonly Color Green = Color.FromArgb(31, 143, 105);
+    private static readonly Color Red = Color.FromArgb(208, 92, 92);
+    private static readonly Color Amber = Color.FromArgb(214, 152, 52);
+    private static readonly Color Slate = Color.FromArgb(104, 116, 138);
 
-    private readonly ActionButton _quickScanButton = new("Р‘С‹СЃС‚СЂС‹Р№ Р°РЅР°Р»РёР·", Blue);
-    private readonly ActionButton _deepScanButton = new("Р“Р»СѓР±РѕРєРёР№ Р°РЅР°Р»РёР·", Green);
-    private readonly ActionButton _cancelButton = new("РћСЃС‚Р°РЅРѕРІРёС‚СЊ", Red);
-    private readonly ActionButton _exportButton = new("РЎРѕС…СЂР°РЅРёС‚СЊ РѕС‚С‡РµС‚", Color.FromArgb(73, 86, 107));
+    private readonly ActionButton _quickScanButton = new("Быстрый анализ", Blue);
+    private readonly ActionButton _deepScanButton = new("Глубокий анализ", Green);
+    private readonly ActionButton _cancelButton = new("Остановить", Slate);
+    private readonly ActionButton _exportButton = new("Сохранить отчет", Slate);
 
+    private readonly MetricCard _highCard = new("Высокий", Red);
+    private readonly MetricCard _mediumCard = new("Средний", Amber);
+    private readonly MetricCard _lowCard = new("Низкий", Blue);
+    private readonly MetricCard _filesCard = new("Файлов", Slate);
+
+    private readonly Label _healthTitle = new();
+    private readonly Label _healthSubtitle = new();
     private readonly Label _statusLabel = new();
     private readonly Label _summaryLabel = new();
-    private readonly Label _healthLabel = new();
-    private readonly Label _healthCaptionLabel = new();
-    private readonly MetricCard _highCard = new("Р’С‹СЃРѕРєРёР№", Red);
-    private readonly MetricCard _mediumCard = new("РЎСЂРµРґРЅРёР№", Amber);
-    private readonly MetricCard _lowCard = new("РќРёР·РєРёР№", Blue);
-    private readonly MetricCard _filesCard = new("Р¤Р°Р№Р»РѕРІ", Color.FromArgb(94, 107, 128));
     private readonly ProgressBar _progressBar = new();
+
     private readonly DataGridView _findingsGrid = new();
     private readonly ListBox _logList = new();
     private readonly ListBox _recommendationsList = new();
     private readonly DataGridView _historyGrid = new();
     private readonly CheckBox _recommendationsOnlyCheck = new();
     private readonly CheckBox _darkThemeCheck = new();
+
     private readonly Label _detailTitle = new();
     private readonly Label _detailRisk = new();
     private readonly Label _detailLocation = new();
@@ -45,105 +55,134 @@ public sealed class MainForm : Form
     private readonly Label _detailDanger = new();
     private readonly Label _detailAction = new();
     private readonly Label _detailIgnore = new();
-    private readonly List<Button> _menuButtons = [];
-    private readonly List<Control> _detailPanels = [];
-    private readonly List<Label> _detailAccentLabels = [];
 
-    private TableLayoutPanel? _mainLayout;
-    private TableLayoutPanel? _shellLayout;
-    private TableLayoutPanel? _headerLayout;
-    private FlowLayoutPanel? _actionsLayout;
+    private readonly List<Button> _menuButtons = [];
+    private readonly List<Label> _detailAccentLabels = [];
+    private readonly List<Label> _detailBodyLabels = [];
+
+    private Panel? _sidebarHost;
+    private Panel? _contentHost;
+    private TableLayoutPanel? _rootLayout;
+    private TableLayoutPanel? _dashboardLayout;
+    private TableLayoutPanel? _overviewLayout;
+    private TableLayoutPanel? _findingsLayout;
     private FlowLayoutPanel? _metricsLayout;
-    private TableLayoutPanel? _findingsContentLayout;
-    private RoundedPanel? _riskDetailsCard;
-    private Control? _findingsArea;
-    private Control? _logArea;
-    private Control? _recommendationsArea;
-    private Control? _historyArea;
-    private Control? _settingsArea;
+    private Control? _overviewPage;
+    private Control? _recommendationsPage;
+    private Control? _historyPage;
+    private Control? _settingsPage;
+    private RoundedPanel? _detailCard;
+
     private List<SecurityFinding> _visibleFindings = [];
     private List<ScanHistoryEntry> _history = [];
-    private bool _darkTheme;
-
     private CancellationTokenSource? _scanCancellation;
     private ScanSummary? _lastSummary;
+    private bool _darkTheme;
 
     public MainForm()
     {
         Text = "PC Guardian";
         ClientSize = new Size(1180, 760);
-        MinimumSize = new Size(1020, 680);
-        BackColor = Background;
+        MinimumSize = new Size(1180, 760);
+        MaximumSize = Screen.PrimaryScreen?.WorkingArea.Size ?? Size.Empty;
+        StartPosition = FormStartPosition.CenterScreen;
+        FormBorderStyle = FormBorderStyle.FixedSingle;
+        MaximizeBox = true;
+        MinimizeBox = true;
         Font = new Font("Segoe UI", 10F);
-        Padding = new Padding(20);
+        Padding = new Padding(18);
         Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath) ?? SystemIcons.Shield;
+
         _history = LoadHistory();
+
         BuildInterface();
+        WireEvents();
+        ApplyTheme();
+        ResetMetricTiles();
+        RefreshHistoryGrid();
+        RefreshRecommendations(null);
+        ShowRiskDetails(null);
+        ShowOverview();
+        UpdateResponsiveLayout();
+    }
+
+    private void WireEvents()
+    {
         Resize += (_, _) => UpdateResponsiveLayout();
         Shown += (_, _) => UpdateResponsiveLayout();
+
+        _quickScanButton.Click += async (_, _) => await StartScanAsync(false);
+        _deepScanButton.Click += async (_, _) => await StartScanAsync(true);
+        _cancelButton.Click += (_, _) => _scanCancellation?.Cancel();
+        _exportButton.Click += (_, _) => ExportReport();
+
+        _recommendationsOnlyCheck.CheckedChanged += (_, _) =>
+        {
+            if (_recommendationsOnlyCheck.Checked)
+            {
+                ShowPage(_recommendationsPage, 1);
+            }
+        };
+
+        _darkThemeCheck.CheckedChanged += (_, _) =>
+        {
+            _darkTheme = _darkThemeCheck.Checked;
+            ApplyTheme();
+        };
+
+        _findingsGrid.SelectionChanged += (_, _) =>
+        {
+            if (_findingsGrid.SelectedRows.Count == 0)
+            {
+                ShowRiskDetails(null);
+                return;
+            }
+
+            var index = _findingsGrid.SelectedRows[0].Index;
+            ShowRiskDetails(index >= 0 && index < _visibleFindings.Count ? _visibleFindings[index] : null);
+        };
     }
 
     private void BuildInterface()
     {
-        var shell = new TableLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            ColumnCount = 2,
-            RowCount = 1,
-            BackColor = Background
-        };
-        shell.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        shell.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 214));
-        shell.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        _shellLayout = shell;
-        Controls.Add(shell);
+        Controls.Clear();
 
-        shell.Controls.Add(CreateSidebar(), 0, 0);
+        _sidebarHost = new Panel { BackColor = Color.Transparent };
+        _contentHost = new Panel { BackColor = Color.Transparent };
+        Controls.Add(_contentHost);
+        Controls.Add(_sidebarHost);
 
-        var root = new TableLayoutPanel
+        _sidebarHost.Controls.Add(CreateSidebar());
+
+        _rootLayout = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             ColumnCount = 1,
-            RowCount = 5,
-            BackColor = Background,
-            Margin = new Padding(14, 0, 0, 0)
+            RowCount = 4,
+            Margin = new Padding(0),
+            Padding = new Padding(0),
+            BackColor = Color.Transparent
         };
-        _mainLayout = root;
-        root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 142));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 112));
-        root.RowStyles.Add(new RowStyle(SizeType.Percent, 64));
-        root.RowStyles.Add(new RowStyle(SizeType.Percent, 36));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 54));
-        shell.Controls.Add(root, 1, 0);
+        _rootLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        _rootLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 128));
+        _rootLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 110));
+        _rootLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        _rootLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 46));
+        _contentHost.Controls.Add(_rootLayout);
 
-        root.Controls.Add(CreateHeader(), 0, 0);
-        root.Controls.Add(CreateDashboard(), 0, 1);
-        _findingsArea = CreateFindingsArea();
-        _logArea = CreateLogArea();
-        _recommendationsArea = CreateRecommendationsArea();
-        _historyArea = CreateHistoryArea();
-        _settingsArea = CreateSettingsArea();
-        root.Controls.Add(_findingsArea, 0, 2);
-        root.Controls.Add(_logArea, 0, 3);
-        root.Controls.Add(CreateFooter(), 0, 4);
-
-        ResetMetricTiles();
-        UpdateHealth("РЎРёСЃС‚РµРјР° РЅРµ РїСЂРѕРІРµСЂСЏР»Р°СЃСЊ", "Р—Р°РїСѓСЃС‚РёС‚Рµ Р±С‹СЃС‚СЂС‹Р№ РёР»Рё РіР»СѓР±РѕРєРёР№ Р°РЅР°Р»РёР·");
-        RefreshHistoryGrid();
-        RefreshRecommendations(null);
-        ShowRiskDetails(null);
-        SelectMenu(0);
+        _rootLayout.Controls.Add(CreateHeader(), 0, 0);
+        _rootLayout.Controls.Add(CreateDashboard(), 0, 1);
+        _rootLayout.Controls.Add(CreatePageHost(), 0, 2);
+        _rootLayout.Controls.Add(CreateFooter(), 0, 3);
     }
 
     private Control CreateSidebar()
     {
-        var sidebar = new RoundedPanel
+        var card = new RoundedPanel
         {
             Dock = DockStyle.Fill,
-            BackColor = Navy,
-            Radius = 8,
-            Padding = new Padding(14)
+            Radius = 10,
+            Padding = new Padding(16)
         };
 
         var layout = new TableLayoutPanel
@@ -151,14 +190,15 @@ public sealed class MainForm : Form
             Dock = DockStyle.Fill,
             ColumnCount = 1,
             RowCount = 3,
-            BackColor = Navy
+            Margin = new Padding(0)
         };
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 116));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 275));
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 118));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 236));
         layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        sidebar.Controls.Add(layout);
+        card.Controls.Add(layout);
 
-        var brand = new Panel { Dock = DockStyle.Fill, BackColor = Navy };
+        var brand = new Panel { Dock = DockStyle.Fill };
         brand.Controls.Add(new PictureBox
         {
             Image = Icon?.ToBitmap() ?? SystemIcons.Shield.ToBitmap(),
@@ -168,19 +208,19 @@ public sealed class MainForm : Form
         });
         brand.Controls.Add(new Label
         {
-            AutoSize = true,
             Text = "PC Guardian",
+            AutoSize = true,
             ForeColor = Color.White,
             Font = new Font("Segoe UI Semibold", 15.5F),
-            Location = new Point(0, 62)
+            Location = new Point(0, 60)
         });
         brand.Controls.Add(new Label
         {
-            AutoSize = true,
             Text = "Security analyzer",
-            ForeColor = Color.FromArgb(177, 192, 214),
+            AutoSize = true,
+            ForeColor = DarkMuted,
             Font = new Font("Segoe UI", 9.3F),
-            Location = new Point(2, 91)
+            Location = new Point(2, 90)
         });
         layout.Controls.Add(brand, 0, 0);
 
@@ -189,32 +229,31 @@ public sealed class MainForm : Form
             Dock = DockStyle.Fill,
             FlowDirection = FlowDirection.TopDown,
             WrapContents = false,
-            BackColor = Navy
+            Margin = new Padding(0)
         };
+        menu.Controls.Add(CreateMenuButton("Обзор", () => ShowOverview()));
+        menu.Controls.Add(CreateMenuButton("Рекомендации", () => ShowPage(_recommendationsPage, 1)));
+        menu.Controls.Add(CreateMenuButton("История", () => ShowPage(_historyPage, 2)));
+        menu.Controls.Add(CreateMenuButton("Настройки", () => ShowPage(_settingsPage, 3)));
         layout.Controls.Add(menu, 0, 1);
-        menu.Controls.Add(CreateMenuButton("РћР±Р·РѕСЂ", () => ShowMainScreen(0)));
-        menu.Controls.Add(CreateMenuButton("Р РёСЃРєРё", () => ShowMainScreen(1)));
-        menu.Controls.Add(CreateMenuButton("Р РµРєРѕРјРµРЅРґР°С†РёРё", () => ShowSingleScreen(_recommendationsArea, 2)));
-        menu.Controls.Add(CreateMenuButton("РСЃС‚РѕСЂРёСЏ", () => ShowSingleScreen(_historyArea, 3)));
-        menu.Controls.Add(CreateMenuButton("РќР°СЃС‚СЂРѕР№РєРё", () => ShowSingleScreen(_settingsArea, 3)));
 
-        var hint = new RoundedPanel
+        var hintCard = new RoundedPanel
         {
             Dock = DockStyle.Bottom,
-            Height = 88,
-            BackColor = NavySoft,
+            Height = 90,
             Radius = 8,
             Padding = new Padding(12)
         };
-        hint.Controls.Add(new Label
+        hintCard.Controls.Add(new Label
         {
             Dock = DockStyle.Fill,
-            Text = "РџРѕРґСЂРѕР±РЅРѕСЃС‚Рё СЂРёСЃРєР° РѕС‚РєСЂС‹РІР°СЋС‚СЃСЏ РїСЂРё РІС‹Р±РѕСЂРµ СЃС‚СЂРѕРєРё РІ С‚Р°Р±Р»РёС†Рµ.",
-            ForeColor = Color.FromArgb(202, 213, 226),
-            Font = new Font("Segoe UI", 8.7F)
+            Text = "Подробности риска открываются при выборе строки в таблице.",
+            ForeColor = Color.FromArgb(205, 216, 232),
+            Font = new Font("Segoe UI", 8.8F)
         });
-        layout.Controls.Add(hint, 0, 2);
-        return sidebar;
+        layout.Controls.Add(hintCard, 0, 2);
+
+        return card;
     }
 
     private Button CreateMenuButton(string text, Action action)
@@ -228,8 +267,6 @@ public sealed class MainForm : Form
             TextAlign = ContentAlignment.MiddleLeft,
             Padding = new Padding(16, 0, 0, 0),
             FlatStyle = FlatStyle.Flat,
-            BackColor = Navy,
-            ForeColor = Color.FromArgb(213, 225, 242),
             Font = new Font("Segoe UI Semibold", 9.5F),
             Cursor = Cursors.Hand,
             UseVisualStyleBackColor = false
@@ -240,66 +277,12 @@ public sealed class MainForm : Form
         return button;
     }
 
-    private void ShowMainScreen(int menuIndex)
-    {
-        if (_mainLayout is null || _findingsArea is null || _logArea is null)
-        {
-            return;
-        }
-
-        ClearScreenRows();
-        _mainLayout.Controls.Add(_findingsArea, 0, 2);
-        _mainLayout.SetRowSpan(_findingsArea, 1);
-        _mainLayout.Controls.Add(_logArea, 0, 3);
-        _mainLayout.SetRowSpan(_logArea, 1);
-        SelectMenu(menuIndex);
-    }
-
-    private void ShowSingleScreen(Control? screen, int menuIndex)
-    {
-        if (_mainLayout is null || screen is null)
-        {
-            return;
-        }
-
-        ClearScreenRows();
-        _mainLayout.Controls.Add(screen, 0, 2);
-        _mainLayout.SetRowSpan(screen, 2);
-        SelectMenu(menuIndex);
-    }
-
-    private void ClearScreenRows()
-    {
-        if (_mainLayout is null)
-        {
-            return;
-        }
-
-        foreach (var control in new[] { _findingsArea, _logArea, _recommendationsArea, _historyArea, _settingsArea })
-        {
-            if (control is not null && _mainLayout.Controls.Contains(control))
-            {
-                _mainLayout.Controls.Remove(control);
-                _mainLayout.SetRowSpan(control, 1);
-            }
-        }
-    }
-
-    private void SelectMenu(int index)
-    {
-        for (var i = 0; i < _menuButtons.Count; i++)
-        {
-            _menuButtons[i].BackColor = i == index ? Cyan : Navy;
-            _menuButtons[i].ForeColor = Color.White;
-        }
-    }
     private Control CreateHeader()
     {
-        var header = new RoundedPanel
+        var card = new RoundedPanel
         {
             Dock = DockStyle.Fill,
-            BackColor = Navy,
-            Radius = 8,
+            Radius = 10,
             Padding = new Padding(28, 22, 28, 22),
             Margin = new Padding(0, 0, 0, 14)
         };
@@ -309,413 +292,356 @@ public sealed class MainForm : Form
             Dock = DockStyle.Fill,
             ColumnCount = 2,
             RowCount = 1,
-            BackColor = Navy
+            Margin = new Padding(0)
         };
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 320));
-        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        _headerLayout = layout;
-        header.Controls.Add(layout);
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 300));
+        card.Controls.Add(layout);
 
-        var brandPanel = new Panel
-        {
-            Dock = DockStyle.Fill,
-            BackColor = Navy
-        };
-        layout.Controls.Add(brandPanel, 0, 0);
-
-        var shield = new PictureBox
+        var brand = new Panel { Dock = DockStyle.Fill };
+        brand.Controls.Add(new PictureBox
         {
             Image = Icon?.ToBitmap() ?? SystemIcons.Shield.ToBitmap(),
             SizeMode = PictureBoxSizeMode.StretchImage,
             Size = new Size(56, 56),
             Location = new Point(0, 6)
-        };
-        brandPanel.Controls.Add(shield);
-
-        brandPanel.Controls.Add(new Label
+        });
+        brand.Controls.Add(new Label
         {
+            Text = "PC Guardian",
             AutoSize = true,
             ForeColor = Color.White,
             Font = new Font("Segoe UI Semibold", 25F),
-            Text = "PC Guardian",
             Location = new Point(78, 2)
         });
-
-        brandPanel.Controls.Add(new Label
+        brand.Controls.Add(new Label
         {
+            Text = "Desktop-анализатор безопасности компьютера",
             AutoSize = true,
             ForeColor = Color.FromArgb(203, 213, 225),
             Font = new Font("Segoe UI", 10.5F),
-            Text = "Desktop-анализатор безопасности компьютера",
             Location = new Point(82, 56)
         });
+        layout.Controls.Add(brand, 0, 0);
 
-        var healthPanel = new RoundedPanel
+        var health = new RoundedPanel
         {
             Dock = DockStyle.Fill,
-            BackColor = NavySoft,
             Radius = 8,
-            Padding = new Padding(18, 10, 18, 10),
-            Margin = new Padding(16, 0, 0, 0)
+            Padding = new Padding(18, 12, 18, 12),
+            Margin = new Padding(14, 0, 0, 0)
         };
+        _healthTitle.Dock = DockStyle.Top;
+        _healthTitle.Height = 32;
+        _healthTitle.Font = new Font("Segoe UI Semibold", 14.5F);
+        _healthTitle.ForeColor = Color.White;
+        _healthSubtitle.Dock = DockStyle.Fill;
+        _healthSubtitle.Font = new Font("Segoe UI", 9.4F);
+        _healthSubtitle.ForeColor = Color.FromArgb(193, 204, 222);
+        health.Controls.Add(_healthSubtitle);
+        health.Controls.Add(_healthTitle);
+        layout.Controls.Add(health, 1, 0);
 
-        _healthLabel.Dock = DockStyle.Top;
-        _healthLabel.Height = 32;
-        _healthLabel.ForeColor = Color.White;
-        _healthLabel.Font = new Font("Segoe UI Semibold", 14.5F);
-        _healthLabel.TextAlign = ContentAlignment.MiddleLeft;
-
-        _healthCaptionLabel.Dock = DockStyle.Fill;
-        _healthCaptionLabel.ForeColor = Color.FromArgb(190, 203, 224);
-        _healthCaptionLabel.Font = new Font("Segoe UI", 9.5F);
-        _healthCaptionLabel.TextAlign = ContentAlignment.TopLeft;
-
-        healthPanel.Controls.Add(_healthCaptionLabel);
-        healthPanel.Controls.Add(_healthLabel);
-        layout.Controls.Add(healthPanel, 1, 0);
-
-        header.Controls.Add(new Panel { Dock = DockStyle.Bottom, Height = 4, BackColor = Cyan });
-        return header;
+        var line = new Panel { Dock = DockStyle.Bottom, Height = 4, BackColor = Cyan };
+        card.Controls.Add(line);
+        return card;
     }
+
     private Control CreateDashboard()
     {
-        var area = new TableLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            ColumnCount = 1,
-            RowCount = 2,
-            BackColor = Background,
-            Margin = new Padding(0, 0, 0, 12)
-        };
-        area.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        area.RowStyles.Add(new RowStyle(SizeType.Absolute, 96));
-        area.RowStyles.Add(new RowStyle(SizeType.Absolute, 88));
-
-        var actionsCard = new RoundedPanel
-        {
-            Dock = DockStyle.Fill,
-            BackColor = Surface,
-            Radius = 8,
-            Padding = new Padding(18, 16, 18, 12)
-        };
-        var actions = new FlowLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            BackColor = Surface,
-            WrapContents = false,
-            AutoScroll = true
-        };
-
-        _cancelButton.Enabled = false;
-        _exportButton.Enabled = false;
-        _quickScanButton.Click += async (_, _) => await StartScanAsync(false);
-        _deepScanButton.Click += async (_, _) => await StartScanAsync(true);
-        _cancelButton.Click += (_, _) => _scanCancellation?.Cancel();
-        _exportButton.Click += (_, _) => ExportReport();
-
-        _recommendationsOnlyCheck.Text = "РўРѕР»СЊРєРѕ СЂРµРєРѕРјРµРЅРґР°С†РёРё";
-        _recommendationsOnlyCheck.Width = 170;
-        _recommendationsOnlyCheck.Height = 42;
-        _recommendationsOnlyCheck.Margin = new Padding(10, 6, 0, 0);
-        _recommendationsOnlyCheck.ForeColor = Ink;
-        _recommendationsOnlyCheck.Font = new Font("Segoe UI Semibold", 9.3F);
-        _recommendationsOnlyCheck.CheckedChanged += (_, _) =>
-        {
-            if (_recommendationsOnlyCheck.Checked && _lastSummary is not null)
-            {
-                ShowSingleScreen(_recommendationsArea, 1);
-            }
-        };
-
-        _actionsLayout = actions;
-        actions.Controls.AddRange([_quickScanButton, _deepScanButton, _cancelButton, _exportButton, _recommendationsOnlyCheck]);
-        actionsCard.Controls.Add(actions);
-        area.Controls.Add(actionsCard, 0, 0);
-
-        var metrics = new FlowLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            BackColor = Background,
-            Margin = new Padding(0),
-            WrapContents = false,
-            AutoScroll = true
-        };
-        _metricsLayout = metrics;
-        metrics.Controls.Add(_highCard);
-        metrics.Controls.Add(_mediumCard);
-        metrics.Controls.Add(_lowCard);
-        metrics.Controls.Add(_filesCard);
-        area.Controls.Add(metrics, 0, 1);
-        return area;
-    }
-    private Control CreateFindingsArea()
-    {
-        var panel = CreateSectionPanel("РќР°Р№РґРµРЅРЅС‹Рµ СЂРёСЃРєРё", "Р’С‹Р±РµСЂРёС‚Рµ СЃС‚СЂРѕРєСѓ, С‡С‚РѕР±С‹ СЃРїСЂР°РІР° РѕС‚РєСЂС‹С‚СЊ РїРѕРґСЂРѕР±РЅРѕСЃС‚Рё СЂРёСЃРєР°");
-        var content = new TableLayoutPanel
+        _dashboardLayout = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             ColumnCount = 2,
             RowCount = 1,
-            BackColor = Surface
+            Margin = new Padding(0, 0, 0, 12),
+            BackColor = Color.Transparent
         };
-        content.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        content.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 338));
-        content.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        _dashboardLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        _dashboardLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 452));
 
-        _findingsGrid.Dock = DockStyle.Fill;
-        _findingsGrid.BackgroundColor = Surface;
-        _findingsGrid.BorderStyle = BorderStyle.None;
-        _findingsGrid.AllowUserToAddRows = false;
-        _findingsGrid.ReadOnly = true;
-        _findingsGrid.RowHeadersVisible = false;
-        _findingsGrid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-        _findingsGrid.MultiSelect = false;
-        _findingsGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-        _findingsGrid.EnableHeadersVisualStyles = false;
-        _findingsGrid.GridColor = Color.FromArgb(226, 232, 240);
-        _findingsGrid.RowTemplate.Height = 34;
-        _findingsGrid.ColumnHeadersHeight = 38;
-        _findingsGrid.DefaultCellStyle.BackColor = Surface;
-        _findingsGrid.DefaultCellStyle.ForeColor = Ink;
-        _findingsGrid.DefaultCellStyle.SelectionBackColor = Color.FromArgb(222, 245, 246);
-        _findingsGrid.DefaultCellStyle.SelectionForeColor = Ink;
-        _findingsGrid.DefaultCellStyle.Font = new Font("Segoe UI", 9.5F);
-        _findingsGrid.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(236, 242, 248);
-        _findingsGrid.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(51, 65, 85);
-        _findingsGrid.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI Semibold", 9.5F);
-        if (_findingsGrid.Columns.Count == 0)
-        {
-            _findingsGrid.Columns.Add("Risk", "Р РёСЃРє");
-            _findingsGrid.Columns.Add("Category", "РљР°С‚РµРіРѕСЂРёСЏ");
-            _findingsGrid.Columns.Add("Title", "РќР°С…РѕРґРєР°");
-            _findingsGrid.Columns.Add("Location", "Р Р°СЃРїРѕР»РѕР¶РµРЅРёРµ");
-            _findingsGrid.Columns["Risk"]!.FillWeight = 18;
-            _findingsGrid.Columns["Category"]!.FillWeight = 24;
-            _findingsGrid.Columns["Title"]!.FillWeight = 44;
-            _findingsGrid.Columns["Location"]!.FillWeight = 74;
-            _findingsGrid.SelectionChanged += (_, _) =>
-            {
-                if (_findingsGrid.SelectedRows.Count == 0)
-                {
-                    return;
-                }
-
-                var index = _findingsGrid.SelectedRows[0].Index;
-                ShowRiskDetails(index >= 0 && index < _visibleFindings.Count ? _visibleFindings[index] : null);
-            };
-        }
-
-        _findingsContentLayout = content;
-        content.Controls.Add(_findingsGrid, 0, 0);
-        content.Controls.Add(CreateRiskDetailsPanel(), 1, 0);
-        ((TableLayoutPanel)panel.Controls[0]).Controls.Add(content, 0, 1);
-        return panel;
-    }
-
-    private Control CreateRiskDetailsPanel()
-    {
-        var card = new RoundedPanel
+        var actionsCard = new RoundedPanel
         {
             Dock = DockStyle.Fill,
-            BackColor = SurfaceSoft,
-            Radius = 8,
-            Padding = new Padding(16),
-            Margin = new Padding(14, 0, 0, 0)
+            Radius = 10,
+            Padding = new Padding(18, 16, 18, 14),
+            Margin = new Padding(0, 0, 14, 0)
         };
 
-        var layout = new TableLayoutPanel
+        var actionsLayout = new FlowLayoutPanel
         {
             Dock = DockStyle.Fill,
-            ColumnCount = 1,
-            RowCount = 7,
-            BackColor = SurfaceSoft
-        };
-        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 52));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 36));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
-        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 25));
-        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 25));
-        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 25));
-        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 25));
-        _riskDetailsCard = card;
-        _detailPanels.Add(card);
-        _detailPanels.Add(layout);
-        card.Controls.Add(layout);
-
-        _detailTitle.Dock = DockStyle.Fill;
-        _detailTitle.Font = new Font("Segoe UI Semibold", 13F);
-        _detailTitle.ForeColor = Ink;
-        _detailTitle.TextAlign = ContentAlignment.MiddleLeft;
-        layout.Controls.Add(_detailTitle, 0, 0);
-
-        _detailRisk.Dock = DockStyle.Fill;
-        _detailRisk.Font = new Font("Segoe UI Semibold", 10F);
-        _detailRisk.ForeColor = Blue;
-        layout.Controls.Add(_detailRisk, 0, 1);
-
-        _detailLocation.Dock = DockStyle.Fill;
-        _detailLocation.Font = new Font("Segoe UI", 8.5F);
-        _detailLocation.ForeColor = Muted;
-        _detailLocation.AutoEllipsis = true;
-        layout.Controls.Add(_detailLocation, 0, 2);
-
-        layout.Controls.Add(CreateDetailBlock("РџРѕС‡РµРјСѓ РЅР°Р№РґРµРЅРѕ", _detailWhy), 0, 3);
-        layout.Controls.Add(CreateDetailBlock("Р§РµРј РѕРїР°СЃРЅРѕ", _detailDanger), 0, 4);
-        layout.Controls.Add(CreateDetailBlock("Р§С‚Рѕ РґРµР»Р°С‚СЊ", _detailAction), 0, 5);
-        layout.Controls.Add(CreateDetailBlock("РњРѕР¶РЅРѕ РёРіРЅРѕСЂРёСЂРѕРІР°С‚СЊ", _detailIgnore), 0, 6);
-        return card;
-    }
-
-    private Control CreateDetailBlock(string title, Label body)
-    {
-        var panel = new Panel { Dock = DockStyle.Fill, BackColor = SurfaceSoft, Margin = new Padding(0, 4, 0, 0) };
-        _detailPanels.Add(panel);
-        var accentLabel = new Label
-        {
-            Dock = DockStyle.Top,
-            Height = 21,
-            Text = title,
-            ForeColor = Cyan,
-            Font = new Font("Segoe UI Semibold", 9.2F)
-        };
-        _detailAccentLabels.Add(accentLabel);
-        panel.Controls.Add(accentLabel);
-        body.Dock = DockStyle.Fill;
-        body.ForeColor = Ink;
-        body.Font = new Font("Segoe UI", 9F);
-        body.AutoEllipsis = true;
-        panel.Controls.Add(body);
-        return panel;
-    }
-    private Control CreateLogArea()
-    {
-        var panel = CreateSectionPanel("Р–СѓСЂРЅР°Р» Р°РЅР°Р»РёР·Р°", "РҐРѕРґ РїСЂРѕРІРµСЂРєРё Рё РІР°Р¶РЅС‹Рµ СЃРѕР±С‹С‚РёСЏ");
-        _logList.Dock = DockStyle.Fill;
-        _logList.BorderStyle = BorderStyle.None;
-        _logList.BackColor = SurfaceSoft;
-        _logList.ForeColor = Color.FromArgb(51, 65, 85);
-        _logList.Font = new Font("Consolas", 9.5F);
-        _logList.ItemHeight = 18;
-        ((TableLayoutPanel)panel.Controls[0]).Controls.Add(_logList, 0, 1);
-        return panel;
-    }
-
-    private Control CreateRecommendationsArea()
-    {
-        var panel = CreateSectionPanel("Р РµРєРѕРјРµРЅРґР°С†РёРё", "РўРѕР»СЊРєРѕ РїРѕРЅСЏС‚РЅС‹Рµ РґРµР№СЃС‚РІРёСЏ РїРѕ РїРѕСЃР»РµРґРЅРµРјСѓ Р°РЅР°Р»РёР·Сѓ");
-        _recommendationsList.Dock = DockStyle.Fill;
-        _recommendationsList.BorderStyle = BorderStyle.None;
-        _recommendationsList.BackColor = SurfaceSoft;
-        _recommendationsList.ForeColor = Ink;
-        _recommendationsList.Font = new Font("Segoe UI", 10.2F);
-        _recommendationsList.ItemHeight = 28;
-        ((TableLayoutPanel)panel.Controls[0]).Controls.Add(_recommendationsList, 0, 1);
-        return panel;
-    }
-
-    private Control CreateHistoryArea()
-    {
-        var panel = CreateSectionPanel("РСЃС‚РѕСЂРёСЏ РїСЂРѕРІРµСЂРѕРє", "Р”Р°С‚Р°, С‡РёСЃР»Рѕ СЂРёСЃРєРѕРІ Рё РёР·РјРµРЅРµРЅРёРµ РѕС‚РЅРѕСЃРёС‚РµР»СЊРЅРѕ РїСЂРµРґС‹РґСѓС‰РµРіРѕ Р°РЅР°Р»РёР·Р°");
-        _historyGrid.Dock = DockStyle.Fill;
-        _historyGrid.BackgroundColor = Surface;
-        _historyGrid.BorderStyle = BorderStyle.None;
-        _historyGrid.AllowUserToAddRows = false;
-        _historyGrid.ReadOnly = true;
-        _historyGrid.RowHeadersVisible = false;
-        _historyGrid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-        _historyGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-        _historyGrid.EnableHeadersVisualStyles = false;
-        _historyGrid.GridColor = Color.FromArgb(226, 232, 240);
-        _historyGrid.RowTemplate.Height = 36;
-        _historyGrid.ColumnHeadersHeight = 38;
-        if (_historyGrid.Columns.Count == 0)
-        {
-            _historyGrid.Columns.Add("Date", "Р”Р°С‚Р°");
-            _historyGrid.Columns.Add("High", "Р’С‹СЃРѕРєРёР№");
-            _historyGrid.Columns.Add("Medium", "РЎСЂРµРґРЅРёР№");
-            _historyGrid.Columns.Add("Low", "РќРёР·РєРёР№");
-            _historyGrid.Columns.Add("Files", "Р¤Р°Р№Р»РѕРІ");
-            _historyGrid.Columns.Add("Change", "РР·РјРµРЅРµРЅРёРµ");
-        }
-        ((TableLayoutPanel)panel.Controls[0]).Controls.Add(_historyGrid, 0, 1);
-        return panel;
-    }
-
-    private Control CreateSettingsArea()
-    {
-        var panel = CreateSectionPanel("РќР°СЃС‚СЂРѕР№РєРё РёРЅС‚РµСЂС„РµР№СЃР°", "РўРµРјРЅР°СЏ С‚РµРјР° Рё СЂРµР¶РёРј РїРѕРєР°Р·Р° СЂРµРєРѕРјРµРЅРґР°С†РёР№");
-        var body = new FlowLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            FlowDirection = FlowDirection.TopDown,
             WrapContents = false,
-            BackColor = SurfaceSoft,
-            Padding = new Padding(18)
+            AutoScroll = false,
+            Margin = new Padding(0)
         };
+        _cancelButton.Enabled = false;
+        _exportButton.Enabled = false;
 
-        _darkThemeCheck.Text = "РўРµРјРЅР°СЏ С‚РµРјР°";
-        _darkThemeCheck.Width = 240;
-        _darkThemeCheck.Height = 38;
-        _darkThemeCheck.Font = new Font("Segoe UI Semibold", 10F);
-        _darkThemeCheck.ForeColor = Ink;
-        _darkThemeCheck.CheckedChanged += (_, _) => ApplyTheme(_darkThemeCheck.Checked);
-        body.Controls.Add(_darkThemeCheck);
+        _recommendationsOnlyCheck.Text = "Только рекомендации";
+        _recommendationsOnlyCheck.Width = 180;
+        _recommendationsOnlyCheck.Height = 42;
+        _recommendationsOnlyCheck.Margin = new Padding(8, 5, 0, 0);
+        _recommendationsOnlyCheck.Font = new Font("Segoe UI Semibold", 9.3F);
 
-        body.Controls.Add(new Label
-        {
-            AutoSize = true,
-            MaximumSize = new Size(720, 0),
-            Text = "Р•СЃР»Рё РІРєР»СЋС‡РёС‚СЊ 'РўРѕР»СЊРєРѕ СЂРµРєРѕРјРµРЅРґР°С†РёРё', РїРѕСЃР»Рµ СЃРєР°РЅРёСЂРѕРІР°РЅРёСЏ РїСЂРёР»РѕР¶РµРЅРёРµ СЃСЂР°Р·Сѓ РѕС‚РєСЂРѕРµС‚ СЌРєСЂР°РЅ СЃ РґРµР№СЃС‚РІРёСЏРјРё Р±РµР· РґР»РёРЅРЅРѕРіРѕ СЃРїРёСЃРєР° РЅР°С…РѕРґРѕРє.",
-            ForeColor = Muted,
-            Font = new Font("Segoe UI", 9.5F),
-            Margin = new Padding(0, 10, 0, 0)
-        });
+        actionsLayout.Controls.AddRange([
+            _quickScanButton,
+            _deepScanButton,
+            _cancelButton,
+            _exportButton,
+            _recommendationsOnlyCheck
+        ]);
+        actionsCard.Controls.Add(actionsLayout);
 
-        ((TableLayoutPanel)panel.Controls[0]).Controls.Add(body, 0, 1);
-        return panel;
-    }
-    private static RoundedPanel CreateSectionPanel(string title, string subtitle)
-    {
-        var panel = new RoundedPanel
+        var metricsLayout = new FlowLayoutPanel
         {
             Dock = DockStyle.Fill,
-            BackColor = Surface,
-            Radius = 8,
-            Padding = new Padding(18),
-            Margin = new Padding(0, 0, 0, 12)
+            WrapContents = false,
+            AutoScroll = false,
+            Margin = new Padding(0)
         };
-        var layout = new TableLayoutPanel
+        _metricsLayout = metricsLayout;
+        metricsLayout.Controls.AddRange([_highCard, _mediumCard, _lowCard, _filesCard]);
+
+        _dashboardLayout.Controls.Add(actionsCard, 0, 0);
+        _dashboardLayout.Controls.Add(metricsLayout, 1, 0);
+        return _dashboardLayout;
+    }
+
+    private Control CreatePageHost()
+    {
+        var host = new Panel { Dock = DockStyle.Fill, BackColor = Color.Transparent };
+        _overviewPage = CreateOverviewPage();
+        _recommendationsPage = CreateRecommendationsPage();
+        _historyPage = CreateHistoryPage();
+        _settingsPage = CreateSettingsPage();
+
+        host.Controls.Add(_overviewPage);
+        host.Controls.Add(_recommendationsPage);
+        host.Controls.Add(_historyPage);
+        host.Controls.Add(_settingsPage);
+        return host;
+    }
+
+    private Control CreateOverviewPage()
+    {
+        _overviewLayout = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             ColumnCount = 1,
             RowCount = 2,
-            BackColor = Surface
+            BackColor = Color.Transparent,
+            Margin = new Padding(0)
+        };
+        _overviewLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        _overviewLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 62));
+        _overviewLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 38));
+        _overviewLayout.Controls.Add(CreateFindingsArea(), 0, 0);
+        _overviewLayout.Controls.Add(CreateLogArea(), 0, 1);
+        return _overviewLayout;
+    }
+
+    private Control CreateFindingsArea()
+    {
+        var panel = CreateSectionPanel("Найденные риски", "Выберите строку, чтобы справа открыть подробности риска");
+
+        _findingsLayout = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 1,
+            Margin = new Padding(0),
+            BackColor = Color.Transparent
+        };
+        _findingsLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        _findingsLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 320));
+
+        ConfigureFindingsGrid();
+        _findingsLayout.Controls.Add(_findingsGrid, 0, 0);
+        _findingsLayout.Controls.Add(CreateRiskDetailsPanel(), 1, 0);
+        AttachSectionContent(panel, _findingsLayout);
+        return panel;
+    }
+
+    private void ConfigureFindingsGrid()
+    {
+        _findingsGrid.Dock = DockStyle.Fill;
+        _findingsGrid.AllowUserToAddRows = false;
+        _findingsGrid.AllowUserToDeleteRows = false;
+        _findingsGrid.ReadOnly = true;
+        _findingsGrid.RowHeadersVisible = false;
+        _findingsGrid.MultiSelect = false;
+        _findingsGrid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+        _findingsGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+        _findingsGrid.BorderStyle = BorderStyle.None;
+        _findingsGrid.ColumnHeadersHeight = 38;
+        _findingsGrid.RowTemplate.Height = 34;
+        _findingsGrid.EnableHeadersVisualStyles = false;
+
+        if (_findingsGrid.Columns.Count == 0)
+        {
+            _findingsGrid.Columns.Add("Risk", "Риск");
+            _findingsGrid.Columns.Add("Category", "Категория");
+            _findingsGrid.Columns.Add("Title", "Находка");
+            _findingsGrid.Columns.Add("Location", "Расположение");
+            _findingsGrid.Columns[0].FillWeight = 18;
+            _findingsGrid.Columns[1].FillWeight = 22;
+            _findingsGrid.Columns[2].FillWeight = 40;
+            _findingsGrid.Columns[3].FillWeight = 62;
+        }
+    }
+
+    private Control CreateRiskDetailsPanel()
+    {
+        _detailCard = new RoundedPanel
+        {
+            Dock = DockStyle.Fill,
+            Radius = 10,
+            Padding = new Padding(18),
+            Margin = new Padding(16, 0, 0, 0)
+        };
+
+        var layout = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 8,
+            Margin = new Padding(0)
         };
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 54));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 46));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 56));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 74));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 74));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 74));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 74));
         layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        panel.Controls.Add(layout);
+        _detailCard.Controls.Add(layout);
 
-        var header = new Panel { Dock = DockStyle.Fill, BackColor = Surface };
-        header.Controls.Add(new Label
+        _detailTitle.Dock = DockStyle.Fill;
+        _detailTitle.Font = new Font("Segoe UI Semibold", 18F);
+        _detailRisk.Dock = DockStyle.Fill;
+        _detailRisk.Font = new Font("Segoe UI Semibold", 10.5F);
+        _detailLocation.Dock = DockStyle.Fill;
+        _detailLocation.Font = new Font("Segoe UI", 9.3F);
+
+        layout.Controls.Add(_detailTitle, 0, 0);
+        layout.Controls.Add(_detailRisk, 0, 1);
+        layout.Controls.Add(_detailLocation, 0, 2);
+        layout.Controls.Add(CreateDetailBlock("Почему найдено", _detailWhy), 0, 3);
+        layout.Controls.Add(CreateDetailBlock("Чем опасно", _detailDanger), 0, 4);
+        layout.Controls.Add(CreateDetailBlock("Что делать", _detailAction), 0, 5);
+        layout.Controls.Add(CreateDetailBlock("Можно игнорировать", _detailIgnore), 0, 6);
+
+        return _detailCard;
+    }
+
+    private Control CreateDetailBlock(string title, Label body)
+    {
+        var panel = new Panel { Dock = DockStyle.Fill, Margin = new Padding(0) };
+        var titleLabel = new Label
         {
-            AutoSize = true,
             Text = title,
-            Font = new Font("Segoe UI Semibold", 12.5F),
-            ForeColor = Ink,
-            Location = new Point(0, 2)
-        });
-        header.Controls.Add(new Label
+            Dock = DockStyle.Top,
+            Height = 22,
+            Font = new Font("Segoe UI Semibold", 9.3F)
+        };
+        var bodyLabel = body;
+        bodyLabel.Dock = DockStyle.Fill;
+        bodyLabel.Font = new Font("Segoe UI", 8.9F);
+        bodyLabel.AutoEllipsis = true;
+        _detailAccentLabels.Add(titleLabel);
+        _detailBodyLabels.Add(bodyLabel);
+        panel.Controls.Add(bodyLabel);
+        panel.Controls.Add(titleLabel);
+        return panel;
+    }
+
+    private Control CreateLogArea()
+    {
+        var panel = CreateSectionPanel("Журнал анализа", "Ход проверки и важные события");
+        _logList.Dock = DockStyle.Fill;
+        _logList.BorderStyle = BorderStyle.None;
+        _logList.Font = new Font("Consolas", 9.4F);
+        AttachSectionContent(panel, _logList);
+        return panel;
+    }
+
+    private Control CreateRecommendationsPage()
+    {
+        var panel = CreateSectionPanel("Рекомендации", "Что можно сделать после проверки");
+        _recommendationsList.Dock = DockStyle.Fill;
+        _recommendationsList.BorderStyle = BorderStyle.None;
+        _recommendationsList.Font = new Font("Segoe UI", 10F);
+        AttachSectionContent(panel, _recommendationsList);
+        return panel;
+    }
+
+    private Control CreateHistoryPage()
+    {
+        var panel = CreateSectionPanel("История проверок", "Сохраненные результаты прошлых запусков");
+        _historyGrid.Dock = DockStyle.Fill;
+        _historyGrid.AllowUserToAddRows = false;
+        _historyGrid.AllowUserToDeleteRows = false;
+        _historyGrid.ReadOnly = true;
+        _historyGrid.RowHeadersVisible = false;
+        _historyGrid.MultiSelect = false;
+        _historyGrid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+        _historyGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+        _historyGrid.BorderStyle = BorderStyle.None;
+        _historyGrid.ColumnHeadersHeight = 38;
+        _historyGrid.RowTemplate.Height = 34;
+        _historyGrid.EnableHeadersVisualStyles = false;
+        if (_historyGrid.Columns.Count == 0)
         {
-            AutoSize = true,
-            Text = subtitle,
-            Font = new Font("Segoe UI", 9.2F),
-            ForeColor = Muted,
-            Location = new Point(1, 30)
-        });
-        layout.Controls.Add(header, 0, 0);
+            _historyGrid.Columns.Add("Date", "Дата");
+            _historyGrid.Columns.Add("Risks", "Рисков");
+            _historyGrid.Columns.Add("Files", "Файлов");
+            _historyGrid.Columns.Add("Change", "Изменение");
+        }
+        AttachSectionContent(panel, _historyGrid);
+        return panel;
+    }
+
+    private Control CreateSettingsPage()
+    {
+        var panel = CreateSectionPanel("Настройки", "Вид приложения и поведение после анализа");
+
+        var content = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 4,
+            Margin = new Padding(0)
+        };
+        content.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
+        content.RowStyles.Add(new RowStyle(SizeType.Absolute, 64));
+        content.RowStyles.Add(new RowStyle(SizeType.Absolute, 64));
+        content.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+        _darkThemeCheck.Text = "Темная тема";
+        _darkThemeCheck.AutoSize = true;
+        _darkThemeCheck.Font = new Font("Segoe UI Semibold", 10F);
+        _darkThemeCheck.Margin = new Padding(0, 6, 0, 0);
+
+        var note1 = new Label
+        {
+            Text = "Обычное окно зафиксировано по размеру. Развернуть можно только кнопкой сверху.",
+            Dock = DockStyle.Fill,
+            Font = new Font("Segoe UI", 9.6F)
+        };
+        var note2 = new Label
+        {
+            Text = "История проверок хранится локально и помогает видеть, стало лучше или хуже.",
+            Dock = DockStyle.Fill,
+            Font = new Font("Segoe UI", 9.6F)
+        };
+
+        content.Controls.Add(_darkThemeCheck, 0, 0);
+        content.Controls.Add(note1, 0, 1);
+        content.Controls.Add(note2, 0, 2);
+        AttachSectionContent(panel, content);
         return panel;
     }
 
@@ -725,121 +651,140 @@ public sealed class MainForm : Form
         {
             Dock = DockStyle.Fill,
             ColumnCount = 3,
-            BackColor = Background,
-            Padding = new Padding(2, 0, 2, 0)
+            RowCount = 1,
+            Margin = new Padding(0)
         };
-        footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 36));
-        footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 42));
-        footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 22));
+        footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 35));
+        footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30));
+        footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 35));
 
         _statusLabel.Dock = DockStyle.Fill;
         _statusLabel.TextAlign = ContentAlignment.MiddleLeft;
         _statusLabel.Font = new Font("Segoe UI Semibold", 10F);
-        _statusLabel.ForeColor = Ink;
-        _statusLabel.Text = "Р“РѕС‚РѕРІ Рє Р°РЅР°Р»РёР·Сѓ";
 
         _summaryLabel.Dock = DockStyle.Fill;
-        _summaryLabel.TextAlign = ContentAlignment.MiddleLeft;
-        _summaryLabel.ForeColor = Muted;
-        _summaryLabel.Text = "Р РёСЃРєРё: 0";
+        _summaryLabel.TextAlign = ContentAlignment.MiddleCenter;
+        _summaryLabel.Font = new Font("Segoe UI", 10F);
 
         _progressBar.Dock = DockStyle.Fill;
-        _progressBar.Margin = new Padding(0, 14, 0, 14);
+        _progressBar.Style = ProgressBarStyle.Continuous;
+        _progressBar.Margin = new Padding(0, 10, 0, 10);
+
         footer.Controls.Add(_statusLabel, 0, 0);
         footer.Controls.Add(_summaryLabel, 1, 0);
         footer.Controls.Add(_progressBar, 2, 0);
         return footer;
     }
 
-    private async Task StartScanAsync(bool deepScan)
+    private RoundedPanel CreateSectionPanel(string title, string subtitle)
     {
-        SetScanState(true);
-        _visibleFindings = [];
-        _findingsGrid.Rows.Clear();
+        var panel = new RoundedPanel
+        {
+            Dock = DockStyle.Fill,
+            Radius = 10,
+            Padding = new Padding(18),
+            Margin = new Padding(0, 0, 0, 14)
+        };
+
+        var layout = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 2,
+            Margin = new Padding(0)
+        };
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 54));
+        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        panel.Controls.Add(layout);
+
+        var header = new Panel { Dock = DockStyle.Fill };
+        header.Controls.Add(new Label
+        {
+            Text = title,
+            AutoSize = true,
+            Font = new Font("Segoe UI Semibold", 16F),
+            Location = new Point(0, 0)
+        });
+        header.Controls.Add(new Label
+        {
+            Text = subtitle,
+            AutoSize = true,
+            Font = new Font("Segoe UI", 9.6F),
+            Location = new Point(2, 30)
+        });
+        layout.Controls.Add(header, 0, 0);
+        return panel;
+    }
+
+    private static void AttachSectionContent(Control panel, Control content)
+    {
+        if (panel.Controls.Count == 0 || panel.Controls[0] is not TableLayoutPanel layout)
+        {
+            return;
+        }
+
+        content.Margin = new Padding(0);
+        layout.Controls.Add(content, 0, 1);
+    }
+
+    private async Task StartScanAsync(bool deep)
+    {
+        if (_scanCancellation is not null)
+        {
+            return;
+        }
+
+        _scanCancellation = new CancellationTokenSource();
+        SetScanState(true, deep ? "Выполняется глубокий анализ..." : "Выполняется быстрый анализ...");
         _logList.Items.Clear();
         _progressBar.Value = 0;
-        ResetMetricTiles();
-        ShowRiskDetails(null);
-        UpdateHealth("РђРЅР°Р»РёР· РІС‹РїРѕР»РЅСЏРµС‚СЃСЏ", deepScan ? "Р“Р»СѓР±РѕРєР°СЏ РїСЂРѕРІРµСЂРєР° РјРѕР¶РµС‚ Р·Р°РЅСЏС‚СЊ РЅРµСЃРєРѕР»СЊРєРѕ РјРёРЅСѓС‚" : "РџСЂРѕРІРµСЂСЏРµРј РєР»СЋС‡РµРІС‹Рµ РѕР±Р»Р°СЃС‚Рё СЃРёСЃС‚РµРјС‹");
-        _statusLabel.Text = deepScan ? "РРґРµС‚ РіР»СѓР±РѕРєРёР№ Р°РЅР°Р»РёР·..." : "РРґРµС‚ Р±С‹СЃС‚СЂС‹Р№ Р°РЅР°Р»РёР·...";
-        AddLog("РџСЂРёР»РѕР¶РµРЅРёРµ Р·Р°РїСѓС‰РµРЅРѕ СЃ РїСЂР°РІР°РјРё Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂР°.");
-        _scanCancellation = new CancellationTokenSource();
-        var scanner = new SecurityScanner(new Progress<string>(AddLog), new Progress<int>(v => _progressBar.Value = Math.Clamp(v, 0, 100)));
+
+        var scanner = new SecurityScanner(
+            new Progress<string>(message => _logList.Items.Add($"[{DateTime.Now:HH:mm:ss}] {message}")),
+            new Progress<int>(value => _progressBar.Value = Math.Max(0, Math.Min(100, value))));
 
         try
         {
-            _lastSummary = deepScan
+            var summary = deep
                 ? await scanner.RunDeepScanAsync(_scanCancellation.Token)
                 : await scanner.RunQuickScanAsync(_scanCancellation.Token);
-            ShowSummary(_lastSummary);
-            SaveHistory(_lastSummary);
-            RefreshHistoryGrid();
-            RefreshRecommendations(_lastSummary);
-            if (_recommendationsOnlyCheck.Checked)
-            {
-                ShowSingleScreen(_recommendationsArea, 1);
-            }
-            AddLog("Р“РѕС‚РѕРІРѕ. РћС‚С‡РµС‚ РјРѕР¶РЅРѕ СЃРѕС…СЂР°РЅРёС‚СЊ РІ С„Р°Р№Р».");
+
+            _lastSummary = summary;
+            PopulateFindings(summary);
+            UpdateMetrics(summary);
+            RefreshRecommendations(summary);
+            AddHistory(summary);
+            UpdateHealth(summary);
+            SetScanState(false, $"Завершено за {(summary.FinishedAt - summary.StartedAt).TotalSeconds:0} сек.");
+            _exportButton.Enabled = true;
         }
         catch (OperationCanceledException)
         {
-            _statusLabel.Text = "РЎРєР°РЅРёСЂРѕРІР°РЅРёРµ РѕСЃС‚Р°РЅРѕРІР»РµРЅРѕ";
-            UpdateHealth("РџСЂРѕРІРµСЂРєР° РѕСЃС‚Р°РЅРѕРІР»РµРЅР°", "Р РµР·СѓР»СЊС‚Р°С‚С‹ РјРѕРіСѓС‚ Р±С‹С‚СЊ РЅРµРїРѕР»РЅС‹РјРё");
-            AddLog("РЎРєР°РЅРёСЂРѕРІР°РЅРёРµ РѕСЃС‚Р°РЅРѕРІР»РµРЅРѕ РїРѕР»СЊР·РѕРІР°С‚РµР»РµРј.");
+            _logList.Items.Add($"[{DateTime.Now:HH:mm:ss}] Проверка остановлена пользователем.");
+            SetScanState(false, "Проверка остановлена");
         }
         catch (Exception ex)
         {
-            _statusLabel.Text = "РћС€РёР±РєР° Р°РЅР°Р»РёР·Р°";
-            UpdateHealth("РћС€РёР±РєР° Р°РЅР°Р»РёР·Р°", "РџСЂРѕРІРµСЂРєР° Р·Р°РІРµСЂС€РёР»Р°СЃСЊ СЃ РѕС€РёР±РєРѕР№");
-            AddLog($"РћС€РёР±РєР°: {ex.Message}");
-            MessageBox.Show(ex.Message, "РћС€РёР±РєР° Р°РЅР°Р»РёР·Р°", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            _logList.Items.Add($"[{DateTime.Now:HH:mm:ss}] Ошибка: {ex.Message}");
+            SetScanState(false, "Произошла ошибка при анализе");
         }
         finally
         {
-            _scanCancellation.Dispose();
+            _scanCancellation?.Dispose();
             _scanCancellation = null;
-            SetScanState(false);
+            _cancelButton.Enabled = false;
         }
     }
 
-    private void ShowSummary(ScanSummary summary)
+    private void PopulateFindings(ScanSummary summary)
     {
+        _findingsGrid.Rows.Clear();
         _visibleFindings = summary.Findings.ToList();
+
         foreach (var finding in _visibleFindings)
         {
-            var rowIndex = _findingsGrid.Rows.Add(ToRussianRisk(finding.Risk), finding.Category, finding.Title, finding.Location);
-            var row = _findingsGrid.Rows[rowIndex];
-            row.DefaultCellStyle.BackColor = finding.Risk switch
-            {
-                RiskLevel.High => Color.FromArgb(255, 240, 240),
-                RiskLevel.Medium => Color.FromArgb(255, 249, 232),
-                RiskLevel.Low => Color.FromArgb(236, 247, 255),
-                _ => Surface
-            };
-            row.DefaultCellStyle.ForeColor = Ink;
+            _findingsGrid.Rows.Add(ToRiskText(finding.Risk), finding.Category, finding.Title, finding.Location);
         }
-
-        _highCard.Value = summary.HighCount.ToString();
-        _mediumCard.Value = summary.MediumCount.ToString();
-        _lowCard.Value = summary.LowCount.ToString();
-        _filesCard.Value = summary.FilesChecked.ToString();
-
-        if (summary.HighCount > 0)
-        {
-            UpdateHealth("РўСЂРµР±СѓРµС‚СЃСЏ РїСЂРѕРІРµСЂРєР°", "РќР°Р№РґРµРЅС‹ СЌР»РµРјРµРЅС‚С‹ СЃ РІС‹СЃРѕРєРёРј СЂРёСЃРєРѕРј");
-        }
-        else if (summary.MediumCount > 0)
-        {
-            UpdateHealth("Р•СЃС‚СЊ Р·Р°РјРµС‡Р°РЅРёСЏ", "РЎС‚РѕРёС‚ РїСЂРѕСЃРјРѕС‚СЂРµС‚СЊ РЅР°Р№РґРµРЅРЅС‹Рµ СЌР»РµРјРµРЅС‚С‹");
-        }
-        else
-        {
-            UpdateHealth("РЎРµСЂСЊРµР·РЅС‹С… СЂРёСЃРєРѕРІ РЅРµС‚", "РљСЂРёС‚РёС‡РЅС‹С… РЅР°С…РѕРґРѕРє РЅРµ РѕР±РЅР°СЂСѓР¶РµРЅРѕ");
-        }
-
-        _statusLabel.Text = $"Р—Р°РІРµСЂС€РµРЅРѕ Р·Р° {(summary.FinishedAt - summary.StartedAt).TotalSeconds:0} СЃРµРє.";
-        _summaryLabel.Text = $"Р’С‹СЃРѕРєРёР№: {summary.HighCount}   РЎСЂРµРґРЅРёР№: {summary.MediumCount}   РќРёР·РєРёР№: {summary.LowCount}   Р¤Р°Р№Р»РѕРІ: {summary.FilesChecked}";
-        _exportButton.Enabled = true;
 
         if (_findingsGrid.Rows.Count > 0)
         {
@@ -856,173 +801,152 @@ public sealed class MainForm : Form
     {
         if (finding is null)
         {
-            _detailTitle.Text = "Р’С‹Р±РµСЂРёС‚Рµ РЅР°С…РѕРґРєСѓ";
-            _detailRisk.Text = "РџРѕРґСЂРѕР±РЅРѕСЃС‚Рё РїРѕСЏРІСЏС‚СЃСЏ Р·РґРµСЃСЊ";
+            _detailTitle.Text = "Выберите находку";
+            _detailRisk.Text = "Подробности появятся здесь";
             _detailLocation.Text = string.Empty;
-            _detailWhy.Text = "РџРѕСЃР»Рµ Р°РЅР°Р»РёР·Р° РЅР°Р¶РјРёС‚Рµ РЅР° СЃС‚СЂРѕРєСѓ РІ С‚Р°Р±Р»РёС†Рµ РЅР°Р№РґРµРЅРЅС‹С… СЂРёСЃРєРѕРІ.";
-            _detailDanger.Text = "РџР°РЅРµР»СЊ РїРѕРєР°Р¶РµС‚, РЅР°СЃРєРѕР»СЊРєРѕ СЌС‚Рѕ РѕРїР°СЃРЅРѕ Рё С‚СЂРµР±СѓРµС‚ Р»Рё РґРµР№СЃС‚РІРёР№.";
-            _detailAction.Text = "РЎРЅР°С‡Р°Р»Р° Р·Р°РїСѓСЃС‚РёС‚Рµ Р±С‹СЃС‚СЂС‹Р№ РёР»Рё РіР»СѓР±РѕРєРёР№ Р°РЅР°Р»РёР·.";
-            _detailIgnore.Text = "РќРёР·РєРёРµ Р·Р°РјРµС‡Р°РЅРёСЏ РјРѕР¶РЅРѕ РёРіРЅРѕСЂРёСЂРѕРІР°С‚СЊ С‚РѕР»СЊРєРѕ РµСЃР»Рё РІС‹ СѓРІРµСЂРµРЅС‹ РІ РїСЂРѕРёСЃС…РѕР¶РґРµРЅРёРё С„Р°Р№Р»Р° РёР»Рё РїСЂРѕС†РµСЃСЃР°.";
+            _detailWhy.Text = "Выберите строку в таблице, чтобы открыть пояснение.";
+            _detailDanger.Text = "Здесь будет краткая оценка влияния на безопасность.";
+            _detailAction.Text = "Здесь появятся шаги, что делать дальше.";
+            _detailIgnore.Text = "Если риск низкий и источник понятен, его можно оставить.";
             return;
         }
 
         _detailTitle.Text = finding.Title;
-        _detailRisk.Text = $"{ToRussianRisk(finding.Risk)} СЂРёСЃРє В· {finding.Category}";
+        _detailRisk.Text = $"{ToRiskText(finding.Risk)} риск • {finding.Category}";
         _detailLocation.Text = finding.Location;
-        _detailWhy.Text = string.IsNullOrWhiteSpace(finding.Details) ? "Р­Р»РµРјРµРЅС‚ СЃРѕРІРїР°Р» СЃ РїСЂР°РІРёР»РѕРј Р°РЅР°Р»РёР·Р° PC Guardian." : finding.Details;
-        _detailDanger.Text = finding.Risk switch
-        {
-            RiskLevel.High => "РўР°РєСѓСЋ РЅР°С…РѕРґРєСѓ Р»СѓС‡С€Рµ РїСЂРѕРІРµСЂРёС‚СЊ РІ РїРµСЂРІСѓСЋ РѕС‡РµСЂРµРґСЊ: РѕРЅР° РјРѕР¶РµС‚ РІР»РёСЏС‚СЊ РЅР° Р·Р°С‰РёС‚Сѓ Windows, Р°РІС‚РѕР·Р°РіСЂСѓР·РєСѓ РёР»Рё Р·Р°РїСѓСЃРє РїРѕРґРѕР·СЂРёС‚РµР»СЊРЅРѕРіРѕ С„Р°Р№Р»Р°.",
-            RiskLevel.Medium => "РЎСЂРµРґРЅРёР№ СЂРёСЃРє С‡Р°СЃС‚Рѕ СЃРІСЏР·Р°РЅ СЃ С„Р°Р№Р»Р°РјРё РёР· РїРѕР»СЊР·РѕРІР°С‚РµР»СЊСЃРєРёС… РїР°РїРѕРє, AppData РёР»Рё РІСЂРµРјРµРЅРЅС‹С… РєР°С‚Р°Р»РѕРіРѕРІ. Р­С‚Рѕ РЅРµ РІСЃРµРіРґР° РІРёСЂСѓСЃ, РЅРѕ С‚СЂРµР±СѓРµС‚ РїСЂРѕРІРµСЂРєРё.",
-            RiskLevel.Low => "РќРёР·РєРёР№ СЂРёСЃРє РѕР±С‹С‡РЅРѕ РѕР·РЅР°С‡Р°РµС‚ РјСѓСЃРѕСЂ, РІСЂРµРјРµРЅРЅС‹Рµ С„Р°Р№Р»С‹ РёР»Рё СЃС‚Р°СЂС‹Рµ СѓСЃС‚Р°РЅРѕРІС‰РёРєРё. Р­С‚Рѕ СЃРєРѕСЂРµРµ РІРѕРїСЂРѕСЃ С‡РёСЃС‚РѕС‚С‹ СЃРёСЃС‚РµРјС‹, С‡РµРј Р·Р°СЂР°Р¶РµРЅРёСЏ.",
-            _ => "РРЅС„РѕСЂРјР°С†РёРѕРЅРЅР°СЏ РЅР°С…РѕРґРєР° РґРѕР±Р°РІР»РµРЅР° РґР»СЏ РєРѕРЅС‚РµРєСЃС‚Р° Рё РЅРµ РІС‹РіР»СЏРґРёС‚ СЃСЂРѕС‡РЅРѕР№."
-        };
+        _detailWhy.Text = BuildWhyText(finding);
+        _detailDanger.Text = BuildDangerText(finding);
         _detailAction.Text = BuildActionText(finding);
-        _detailIgnore.Text = finding.Risk switch
-        {
-            RiskLevel.High => "РРіРЅРѕСЂРёСЂРѕРІР°С‚СЊ РЅРµ СЃС‚РѕРёС‚, РїРѕРєР° РІС‹ РЅРµ РїСЂРѕРІРµСЂРёР»Рё РёСЃС‚РѕС‡РЅРёРє Рё РїРѕРґРїРёСЃСЊ С„Р°Р№Р»Р°.",
-            RiskLevel.Medium => "РњРѕР¶РЅРѕ РѕСЃС‚Р°РІРёС‚СЊ, РµСЃР»Рё РїСЂРѕРіСЂР°РјРјР° РІР°Рј Р·РЅР°РєРѕРјР° Рё РїСѓС‚СЊ РІС‹РіР»СЏРґРёС‚ РѕР¶РёРґР°РµРјРѕ.",
-            _ => "Р”Р°, РµСЃР»Рё РІС‹ СѓРІРµСЂРµРЅС‹, С‡С‚Рѕ СЌС‚Рѕ РєСЌС€, СѓСЃС‚Р°РЅРѕРІС‰РёРє РёР»Рё С‡Р°СЃС‚СЊ РґРѕРІРµСЂРµРЅРЅРѕР№ РїСЂРѕРіСЂР°РјРјС‹."
-        };
-    }
-
-    private static string BuildActionText(SecurityFinding finding)
-    {
-        if (finding.Category.Contains("РђРІС‚РѕР·Р°РіСЂСѓР·РєР°", StringComparison.OrdinalIgnoreCase))
-        {
-            return "РћС‚РєСЂРѕР№С‚Рµ Р°РІС‚РѕР·Р°РіСЂСѓР·РєСѓ Windows Рё РѕС‚РєР»СЋС‡РёС‚Рµ СЌР»РµРјРµРЅС‚, РµСЃР»Рё РїСЂРѕРіСЂР°РјРјР° РІР°Рј РЅРµР·РЅР°РєРѕРјР°. РџРµСЂРµРґ СѓРґР°Р»РµРЅРёРµРј РїСЂРѕРІРµСЂСЊС‚Рµ РїСѓС‚СЊ Рё С†РёС„СЂРѕРІСѓСЋ РїРѕРґРїРёСЃСЊ С„Р°Р№Р»Р°.";
-        }
-
-        if (finding.Category.Contains("РџСЂРѕС†РµСЃСЃС‹", StringComparison.OrdinalIgnoreCase))
-        {
-            return "РћС‚РєСЂРѕР№С‚Рµ СЂР°СЃРїРѕР»РѕР¶РµРЅРёРµ С„Р°Р№Р»Р°, РїСЂРѕРІРµСЂСЊС‚Рµ РёР·РґР°С‚РµР»СЏ Рё С‚РѕР»СЊРєРѕ РїРѕСЃР»Рµ СЌС‚РѕРіРѕ СЂРµС€Р°Р№С‚Рµ, Р·Р°РІРµСЂС€Р°С‚СЊ РїСЂРѕС†РµСЃСЃ РёР»Рё РЅРµС‚.";
-        }
-
-        if (finding.Category.Contains("РћС‡РёСЃС‚РєР°", StringComparison.OrdinalIgnoreCase))
-        {
-            return "РћС‡РёСЃС‚РёС‚Рµ РІСЂРµРјРµРЅРЅС‹Рµ С„Р°Р№Р»С‹ С‡РµСЂРµР· РџР°СЂР°РјРµС‚СЂС‹ Windows РёР»Рё РћС‡РёСЃС‚РєСѓ РґРёСЃРєР°. Р Р°Р±РѕС‡РёРµ РґРѕРєСѓРјРµРЅС‚С‹ Рё РїСЂРѕРµРєС‚С‹ РЅРµ СѓРґР°Р»СЏР№С‚Рµ Р±РµР· РїСЂРѕРІРµСЂРєРё.";
-        }
-
-        return "РџСЂРѕРІРµСЂСЊС‚Рµ РїСЂРѕРёСЃС…РѕР¶РґРµРЅРёРµ С„Р°Р№Р»Р°. Р•СЃР»Рё СЌС‚Рѕ С‡Р°СЃС‚СЊ Р·РЅР°РєРѕРјРѕР№ РїСЂРѕРіСЂР°РјРјС‹, РµРіРѕ РјРѕР¶РЅРѕ РѕСЃС‚Р°РІРёС‚СЊ. Р•СЃР»Рё РёСЃС‚РѕС‡РЅРёРє РЅРµСЏСЃРµРЅ, РґРѕРїРѕР»РЅРёС‚РµР»СЊРЅРѕ РїСЂРѕРІРµСЂСЊС‚Рµ С„Р°Р№Р» Р°РЅС‚РёРІРёСЂСѓСЃРѕРј.";
+        _detailIgnore.Text = BuildIgnoreText(finding);
     }
 
     private void RefreshRecommendations(ScanSummary? summary)
     {
         _recommendationsList.Items.Clear();
+
         if (summary is null)
         {
-            _recommendationsList.Items.Add("Р—Р°РїСѓСЃС‚РёС‚Рµ Р°РЅР°Р»РёР·, С‡С‚РѕР±С‹ РїРѕР»СѓС‡РёС‚СЊ РїРµСЂСЃРѕРЅР°Р»СЊРЅС‹Рµ СЂРµРєРѕРјРµРЅРґР°С†РёРё.");
-            _recommendationsList.Items.Add("РџРѕСЃР»Рµ РїСЂРѕРІРµСЂРєРё Р·РґРµСЃСЊ РїРѕСЏРІСЏС‚СЃСЏ С‚РѕР»СЊРєРѕ РєРѕСЂРѕС‚РєРёРµ РїРѕРЅСЏС‚РЅС‹Рµ РґРµР№СЃС‚РІРёСЏ.");
+            _recommendationsList.Items.Add("После первой проверки здесь появятся рекомендации по системе.");
             return;
         }
 
         if (summary.HighCount > 0)
         {
-            _recommendationsList.Items.Add($"РџСЂРѕРІРµСЂСЊС‚Рµ РІС‹СЃРѕРєРёР№ СЂРёСЃРє: {summary.HighCount}. РќР°С‡РЅРёС‚Рµ СЃ Р·Р°С‰РёС‚С‹ Windows Рё Р°РІС‚РѕР·Р°РіСЂСѓР·РєРё.");
+            _recommendationsList.Items.Add("Сначала разберите все высокие риски и проверьте происхождение подозрительных файлов.");
         }
+
         if (summary.MediumCount > 0)
         {
-            _recommendationsList.Items.Add($"РџСЂРѕСЃРјРѕС‚СЂРёС‚Рµ СЃСЂРµРґРЅРёРµ СЂРёСЃРєРё: {summary.MediumCount}. Р§Р°С‰Рµ РІСЃРµРіРѕ СЌС‚Рѕ РїСЂРѕС†РµСЃСЃС‹ Рё С„Р°Р№Р»С‹ РёР· РїРѕР»СЊР·РѕРІР°С‚РµР»СЊСЃРєРёС… РїР°РїРѕРє.");
+            _recommendationsList.Items.Add("Посмотрите процессы и автозагрузку из пользовательских папок — там чаще всего прячутся лишние вещи.");
         }
+
         if (summary.TempBytes > 2L * 1024 * 1024 * 1024)
         {
-            _recommendationsList.Items.Add($"РћС‡РёСЃС‚РёС‚Рµ РІСЂРµРјРµРЅРЅС‹Рµ С„Р°Р№Р»С‹: РЅР°Р№РґРµРЅРѕ РїСЂРёРјРµСЂРЅРѕ {SecurityScanner.FormatBytes(summary.TempBytes)}.");
+            _recommendationsList.Items.Add("Очистите временные файлы: это не вирус, но системе станет заметно легче.");
         }
-        if (summary.Findings.Any(f => f.Category.Contains("РђРІС‚РѕР·Р°РіСЂСѓР·РєР°", StringComparison.OrdinalIgnoreCase)))
+
+        if (summary.Findings.Any(f => f.Category == "Автозагрузка"))
         {
-            _recommendationsList.Items.Add("РџСЂРѕРІРµСЂСЊС‚Рµ СЌР»РµРјРµРЅС‚С‹ Р°РІС‚РѕР·Р°РіСЂСѓР·РєРё Рё РѕСЃС‚Р°РІСЊС‚Рµ С‚РѕР»СЊРєРѕ С‚Рµ, РєРѕС‚РѕСЂС‹Рµ РІС‹ С‚РѕС‡РЅРѕ СѓР·РЅР°РµС‚Рµ.");
+            _recommendationsList.Items.Add("Отключите из автозагрузки то, чем не пользуетесь каждый день.");
         }
-        if (summary.HighCount == 0 && summary.MediumCount == 0)
+
+        if (_recommendationsList.Items.Count == 0)
         {
-            _recommendationsList.Items.Add("РљСЂРёС‚РёС‡РЅС‹С… РґРµР№СЃС‚РІРёР№ РЅРµ С‚СЂРµР±СѓРµС‚СЃСЏ. РџРѕ С‚РµРєСѓС‰РёРј РїСЂР°РІРёР»Р°Рј СЃРёСЃС‚РµРјР° РІС‹РіР»СЏРґРёС‚ СЃРїРѕРєРѕР№РЅРѕ.");
-        }
-        _recommendationsList.Items.Add("РџРµСЂРµРґ СѓРґР°Р»РµРЅРёРµРј С„Р°Р№Р»РѕРІ РІСЃРµРіРґР° РїСЂРѕРІРµСЂСЏР№С‚Рµ РёСЃС‚РѕС‡РЅРёРє. PC Guardian РїРѕРєР°Р·С‹РІР°РµС‚ СЂРёСЃРє, РЅРѕ РЅРµ СѓРґР°Р»СЏРµС‚ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё.");
-    }
-
-    private void SaveHistory(ScanSummary summary)
-    {
-        var previous = _history.OrderByDescending(h => h.FinishedAt).FirstOrDefault();
-        var total = summary.HighCount + summary.MediumCount + summary.LowCount;
-        var change = previous is null
-            ? "РџРµСЂРІР°СЏ РїСЂРѕРІРµСЂРєР°"
-            : total < previous.TotalRisks
-                ? $"РЎС‚Р°Р»Рѕ Р»СѓС‡С€Рµ: -{previous.TotalRisks - total}"
-                : total > previous.TotalRisks
-                    ? $"РЎС‚Р°Р»Рѕ С…СѓР¶Рµ: +{total - previous.TotalRisks}"
-                    : "Р‘РµР· РёР·РјРµРЅРµРЅРёР№";
-
-        _history.Insert(0, new ScanHistoryEntry(summary.FinishedAt, summary.HighCount, summary.MediumCount, summary.LowCount, summary.FilesChecked, total, change));
-        _history = _history.Take(40).ToList();
-        var historyPath = GetHistoryPath();
-        Directory.CreateDirectory(Path.GetDirectoryName(historyPath)!);
-        File.WriteAllText(historyPath, JsonSerializer.Serialize(_history, new JsonSerializerOptions { WriteIndented = true }));
-    }
-
-    private List<ScanHistoryEntry> LoadHistory()
-    {
-        try
-        {
-            var historyPath = GetHistoryPath();
-            if (!File.Exists(historyPath))
-            {
-                return [];
-            }
-
-            return JsonSerializer.Deserialize<List<ScanHistoryEntry>>(File.ReadAllText(historyPath)) ?? [];
-        }
-        catch
-        {
-            return [];
+            _recommendationsList.Items.Add("Серьезных рекомендаций нет. Состояние выглядит спокойно.");
         }
     }
 
     private void RefreshHistoryGrid()
     {
-        if (_historyGrid.Columns.Count == 0)
-        {
-            return;
-        }
-
         _historyGrid.Rows.Clear();
-        foreach (var item in _history.OrderByDescending(h => h.FinishedAt))
+        foreach (var item in _history.OrderByDescending(x => x.FinishedAt))
         {
-            _historyGrid.Rows.Add(item.FinishedAt.ToString("dd.MM.yyyy HH:mm"), item.High, item.Medium, item.Low, item.FilesChecked, item.Change);
+            _historyGrid.Rows.Add(
+                item.FinishedAt.ToString("dd.MM.yyyy HH:mm"),
+                item.TotalRisks,
+                item.FilesChecked,
+                item.Change);
         }
     }
 
-    private static string GetHistoryPath()
+    private void AddHistory(ScanSummary summary)
     {
-        return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PC Guardian", "scan-history.json");
+        var total = summary.HighCount + summary.MediumCount + summary.LowCount;
+        var previous = _history.OrderByDescending(x => x.FinishedAt).FirstOrDefault();
+        var change = previous is null
+            ? "Первая сохраненная проверка"
+            : total == previous.TotalRisks
+                ? "Без изменений"
+                : total < previous.TotalRisks
+                    ? $"Лучше на {previous.TotalRisks - total}"
+                    : $"Хуже на {total - previous.TotalRisks}";
+
+        _history.Add(new ScanHistoryEntry(summary.FinishedAt, summary.HighCount, summary.MediumCount, summary.LowCount, summary.FilesChecked, total, change));
+        _history = _history.OrderByDescending(x => x.FinishedAt).Take(40).ToList();
+        SaveHistory();
+        RefreshHistoryGrid();
     }
 
-    private sealed record ScanHistoryEntry(DateTime FinishedAt, int High, int Medium, int Low, int FilesChecked, int TotalRisks, string Change);
+    private void UpdateMetrics(ScanSummary summary)
+    {
+        _highCard.Value = summary.HighCount.ToString();
+        _mediumCard.Value = summary.MediumCount.ToString();
+        _lowCard.Value = summary.LowCount.ToString();
+        _filesCard.Value = summary.FilesChecked.ToString();
+        _summaryLabel.Text = $"Риски: {summary.HighCount + summary.MediumCount + summary.LowCount}";
+    }
+
     private void ResetMetricTiles()
     {
         _highCard.Value = "0";
         _mediumCard.Value = "0";
         _lowCard.Value = "0";
         _filesCard.Value = "0";
-        _summaryLabel.Text = "Р РёСЃРєРё: 0";
+        _statusLabel.Text = "Готов к анализу";
+        _summaryLabel.Text = "Риски: 0";
+        _progressBar.Value = 0;
+        UpdateHealth(null);
     }
 
-    private void SetScanState(bool isScanning)
+    private void SetScanState(bool isScanning, string statusText)
     {
+        _statusLabel.Text = statusText;
         _quickScanButton.Enabled = !isScanning;
         _deepScanButton.Enabled = !isScanning;
         _cancelButton.Enabled = isScanning;
-        _exportButton.Enabled = !isScanning && _lastSummary is not null;
+        _recommendationsOnlyCheck.Enabled = !isScanning;
     }
 
-    private void AddLog(string message)
+    private void UpdateHealth(ScanSummary? summary)
     {
-        _logList.Items.Add($"[{DateTime.Now:HH:mm:ss}] {message}");
-        _logList.TopIndex = Math.Max(0, _logList.Items.Count - 1);
-    }
+        if (summary is null)
+        {
+            _healthTitle.Text = "Готов к проверке";
+            _healthSubtitle.Text = "Запустите анализ, чтобы оценить состояние системы.";
+            return;
+        }
 
-    private void UpdateHealth(string title, string subtitle)
-    {
-        _healthLabel.Text = title;
-        _healthCaptionLabel.Text = subtitle;
+        var total = summary.HighCount + summary.MediumCount + summary.LowCount;
+        if (summary.HighCount > 0)
+        {
+            _healthTitle.Text = "Нужно внимание";
+            _healthSubtitle.Text = $"Есть высокие риски: {summary.HighCount}. Начните именно с них.";
+        }
+        else if (summary.MediumCount > 0)
+        {
+            _healthTitle.Text = "Состояние среднее";
+            _healthSubtitle.Text = $"Найдено {summary.MediumCount} средних и {summary.LowCount} низких рисков.";
+        }
+        else if (total > 0)
+        {
+            _healthTitle.Text = "Почти чисто";
+            _healthSubtitle.Text = $"Остались только низкие замечания: {summary.LowCount}.";
+        }
+        else
+        {
+            _healthTitle.Text = "Все спокойно";
+            _healthSubtitle.Text = "Серьезных замечаний не найдено.";
+        }
     }
 
     private void ExportReport()
@@ -1034,224 +958,324 @@ public sealed class MainForm : Form
 
         using var dialog = new SaveFileDialog
         {
-            Title = "РЎРѕС…СЂР°РЅРёС‚СЊ РѕС‚С‡РµС‚",
-            Filter = "РўРµРєСЃС‚РѕРІС‹Р№ РѕС‚С‡РµС‚ (*.txt)|*.txt",
+            Title = "Сохранить отчет",
+            Filter = "Text file (*.txt)|*.txt",
             FileName = $"pc-guardian-report-{DateTime.Now:yyyyMMdd-HHmm}.txt"
         };
 
-        if (dialog.ShowDialog(this) == DialogResult.OK)
+        if (dialog.ShowDialog(this) != DialogResult.OK)
         {
-            File.WriteAllText(dialog.FileName, SecurityScanner.BuildReport(_lastSummary));
-            AddLog($"РћС‚С‡РµС‚ СЃРѕС…СЂР°РЅРµРЅ: {dialog.FileName}");
+            return;
         }
+
+        File.WriteAllText(dialog.FileName, SecurityScanner.BuildReport(_lastSummary));
+        _logList.Items.Add($"[{DateTime.Now:HH:mm:ss}] Отчет сохранен: {dialog.FileName}");
     }
 
-    private void ApplyTheme(bool dark)
+    private void ShowOverview()
     {
-        _darkTheme = dark;
-        var background = dark ? Color.FromArgb(18, 24, 35) : Background;
-        var surface = dark ? Color.FromArgb(25, 33, 47) : Surface;
-        var surfaceSoft = dark ? Color.FromArgb(22, 30, 44) : SurfaceSoft;
-        var ink = dark ? Color.FromArgb(224, 231, 239) : Ink;
-        var muted = dark ? Color.FromArgb(164, 176, 194) : Muted;
-
-        BackColor = background;
-        if (_mainLayout is not null)
-        {
-            _mainLayout.BackColor = background;
-        }
-
-        foreach (var control in GetAllControls(this))
-        {
-            if (control is RoundedPanel or Panel or TableLayoutPanel or FlowLayoutPanel)
-            {
-                if (control.BackColor == Background || control.BackColor == Surface || control.BackColor == SurfaceSoft || control.BackColor == Color.FromArgb(11, 18, 32) || control.BackColor == Color.FromArgb(18, 28, 46) || control.BackColor == Color.FromArgb(24, 36, 58))
-                {
-                    control.BackColor = control.BackColor == SurfaceSoft || control.BackColor == Color.FromArgb(24, 36, 58) || control.BackColor == Color.FromArgb(31, 40, 56) ? surfaceSoft : surface;
-                }
-            }
-
-            if (control is Label or CheckBox or ListBox)
-            {
-                if (control.ForeColor == Ink || control.ForeColor == Color.FromArgb(232, 240, 248))
-                {
-                    control.ForeColor = ink;
-                }
-                else if (control.ForeColor == Muted || control.ForeColor == Color.FromArgb(157, 171, 190))
-                {
-                    control.ForeColor = muted;
-                }
-            }
-        }
-
-        _recommendationsOnlyCheck.ForeColor = ink;
-        _darkThemeCheck.ForeColor = ink;
-        _findingsGrid.BackgroundColor = surface;
-        _findingsGrid.DefaultCellStyle.BackColor = surface;
-        _findingsGrid.DefaultCellStyle.ForeColor = ink;
-        _findingsGrid.DefaultCellStyle.SelectionBackColor = dark ? Color.FromArgb(42, 68, 92) : Color.FromArgb(216, 232, 244);
-        _findingsGrid.DefaultCellStyle.SelectionForeColor = ink;
-        _findingsGrid.ColumnHeadersDefaultCellStyle.BackColor = dark ? Color.FromArgb(36, 47, 64) : Color.FromArgb(228, 235, 243);
-        _findingsGrid.ColumnHeadersDefaultCellStyle.ForeColor = muted;
-        _findingsGrid.GridColor = dark ? Color.FromArgb(45, 60, 82) : Color.FromArgb(226, 232, 240);
-
-        _historyGrid.BackgroundColor = surface;
-        _historyGrid.DefaultCellStyle.BackColor = surface;
-        _historyGrid.DefaultCellStyle.ForeColor = ink;
-        _historyGrid.DefaultCellStyle.SelectionBackColor = dark ? Color.FromArgb(42, 68, 92) : Color.FromArgb(216, 232, 244);
-        _historyGrid.DefaultCellStyle.SelectionForeColor = ink;
-        _historyGrid.ColumnHeadersDefaultCellStyle.BackColor = dark ? Color.FromArgb(36, 47, 64) : Color.FromArgb(228, 235, 243);
-        _historyGrid.ColumnHeadersDefaultCellStyle.ForeColor = muted;
-        _historyGrid.GridColor = dark ? Color.FromArgb(45, 60, 82) : Color.FromArgb(226, 232, 240);
-
-        _logList.BackColor = surfaceSoft;
-        _logList.ForeColor = ink;
-        _recommendationsList.BackColor = surfaceSoft;
-        _recommendationsList.ForeColor = ink;
-        _detailTitle.ForeColor = ink;
-        _detailLocation.ForeColor = dark ? Color.FromArgb(176, 188, 205) : muted;
-        _detailWhy.ForeColor = dark ? Color.FromArgb(214, 222, 232) : ink;
-        _detailDanger.ForeColor = dark ? Color.FromArgb(214, 222, 232) : ink;
-        _detailAction.ForeColor = dark ? Color.FromArgb(214, 222, 232) : ink;
-        _detailIgnore.ForeColor = dark ? Color.FromArgb(214, 222, 232) : ink;
-        foreach (var detailPanel in _detailPanels)
-        {
-            detailPanel.BackColor = surfaceSoft;
-        }
-        foreach (var accentLabel in _detailAccentLabels)
-        {
-            accentLabel.ForeColor = dark ? Color.FromArgb(74, 191, 201) : Cyan;
-        }
-        _detailRisk.ForeColor = dark ? Color.FromArgb(116, 176, 243) : Blue;
+        ShowPage(_overviewPage, 0);
     }
 
-    private static IEnumerable<Control> GetAllControls(Control root)
+    private void ShowPage(Control? page, int menuIndex)
     {
-        foreach (Control child in root.Controls)
+        if (page is null)
         {
-            foreach (var nested in GetAllControls(child))
+            return;
+        }
+
+        foreach (var control in new[] { _overviewPage, _recommendationsPage, _historyPage, _settingsPage })
+        {
+            if (control is not null)
             {
-                yield return nested;
+                control.Visible = ReferenceEquals(control, page);
             }
-            yield return child;
+        }
+
+        for (var i = 0; i < _menuButtons.Count; i++)
+        {
+            _menuButtons[i].BackColor = i == menuIndex ? Cyan : DarkSurface;
+            _menuButtons[i].ForeColor = Color.White;
         }
     }
+
     private void UpdateResponsiveLayout()
     {
-        _shellLayout?.SuspendLayout();
-        _mainLayout?.SuspendLayout();
-        _headerLayout?.SuspendLayout();
-        _findingsContentLayout?.SuspendLayout();
+        var isMaximized = WindowState == FormWindowState.Maximized;
+        var outerPadding = isMaximized ? 24 : 18;
+        var sidebarWidth = isMaximized ? 226 : 214;
+        var gap = 16;
 
-        if (_actionsLayout is not null)
+        var client = ClientRectangle;
+        _sidebarHost?.SetBounds(outerPadding, outerPadding, sidebarWidth, client.Height - outerPadding * 2);
+        _contentHost?.SetBounds(outerPadding + sidebarWidth + gap, outerPadding, client.Width - sidebarWidth - gap - outerPadding * 2, client.Height - outerPadding * 2);
+
+        if (_dashboardLayout is not null)
         {
-            var actionsWidth = Math.Max(320, _actionsLayout.ClientSize.Width);
-            _actionsLayout.WrapContents = actionsWidth < 900;
-            _actionsLayout.AutoScroll = false;
+            var metricsWidth = isMaximized ? 500 : 452;
+            _dashboardLayout.ColumnStyles[1].Width = metricsWidth;
         }
 
         if (_metricsLayout is not null)
         {
-            var available = Math.Max(320, _metricsLayout.ClientSize.Width);
-            _metricsLayout.WrapContents = available < 760;
-            var columns = available < 760 ? 2 : 4;
-            var cardWidth = Math.Max(150, Math.Min(220, (available - (columns - 1) * 12) / columns));
-            foreach (var card in new[] { _highCard, _mediumCard, _lowCard, _filesCard })
+            var width = isMaximized ? 112 : 100;
+            var height = isMaximized ? 86 : 82;
+            foreach (Control control in _metricsLayout.Controls)
             {
-                card.Width = cardWidth;
-                card.Height = 82;
+                control.Width = width;
+                control.Height = height;
+                control.Margin = new Padding(0, 0, 10, 0);
             }
         }
 
-        if (_headerLayout is not null && _headerLayout.ColumnStyles.Count > 1)
+        if (_findingsLayout is not null)
         {
-            var healthWidth = _headerLayout.ClientSize.Width < 980 ? 250 : 320;
-            _headerLayout.ColumnStyles[1].Width = healthWidth;
+            _findingsLayout.ColumnStyles[1].Width = isMaximized ? 360 : 320;
         }
-
-        if (_findingsContentLayout is not null && _riskDetailsCard is not null)
-        {
-            var available = _findingsContentLayout.ClientSize.Width;
-            if (available <= 980)
-            {
-                if (_findingsContentLayout.ColumnCount != 1)
-                {
-                    _findingsContentLayout.Controls.Clear();
-                    _findingsContentLayout.ColumnStyles.Clear();
-                    _findingsContentLayout.RowStyles.Clear();
-                    _findingsContentLayout.ColumnCount = 1;
-                    _findingsContentLayout.RowCount = 2;
-                    _findingsContentLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-                    _findingsContentLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-                    _findingsContentLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 240));
-                    _riskDetailsCard.Margin = new Padding(0, 14, 0, 0);
-                    _findingsContentLayout.Controls.Add(_findingsGrid, 0, 0);
-                    _findingsContentLayout.Controls.Add(_riskDetailsCard, 0, 1);
-                }
-            }
-            else
-            {
-                if (_findingsContentLayout.ColumnCount != 2)
-                {
-                    _findingsContentLayout.Controls.Clear();
-                    _findingsContentLayout.ColumnStyles.Clear();
-                    _findingsContentLayout.RowStyles.Clear();
-                    _findingsContentLayout.ColumnCount = 2;
-                    _findingsContentLayout.RowCount = 1;
-                    _findingsContentLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-                    _findingsContentLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 338));
-                    _findingsContentLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-                    _riskDetailsCard.Margin = new Padding(14, 0, 0, 0);
-                    _findingsContentLayout.Controls.Add(_findingsGrid, 0, 0);
-                    _findingsContentLayout.Controls.Add(_riskDetailsCard, 1, 0);
-                }
-            }
-        }
-
-        _findingsContentLayout?.ResumeLayout(true);
-        _findingsContentLayout?.PerformLayout();
-        _headerLayout?.ResumeLayout(true);
-        _mainLayout?.ResumeLayout(true);
-        _shellLayout?.ResumeLayout(true);
-        PerformLayout();
-        Invalidate(true);
     }
-    private static string ToRussianRisk(RiskLevel risk)
+
+    private void ApplyTheme()
+    {
+        var background = _darkTheme ? DarkBackground : LightBackground;
+        var surface = _darkTheme ? DarkSurface : LightSurface;
+        var surfaceAlt = _darkTheme ? DarkSurfaceAlt : LightSurfaceAlt;
+        var text = _darkTheme ? DarkText : LightText;
+        var muted = _darkTheme ? DarkMuted : LightMuted;
+
+        BackColor = background;
+        if (_contentHost is not null) _contentHost.BackColor = background;
+
+        ApplyToRoundedPanels(this, surface, surfaceAlt, text, muted);
+        ApplyGridTheme(_findingsGrid, surface, surfaceAlt, text, muted);
+        ApplyGridTheme(_historyGrid, surface, surfaceAlt, text, muted);
+
+        _logList.BackColor = _darkTheme ? Color.FromArgb(28, 39, 58) : Color.FromArgb(239, 244, 249);
+        _logList.ForeColor = _darkTheme ? Color.FromArgb(226, 232, 240) : text;
+        _recommendationsList.BackColor = _darkTheme ? Color.FromArgb(28, 39, 58) : Color.FromArgb(239, 244, 249);
+        _recommendationsList.ForeColor = _darkTheme ? Color.FromArgb(226, 232, 240) : text;
+
+        _statusLabel.ForeColor = _darkTheme ? Color.White : text;
+        _summaryLabel.ForeColor = _darkTheme ? Color.FromArgb(196, 208, 224) : muted;
+
+        _recommendationsOnlyCheck.ForeColor = _darkTheme ? Color.White : text;
+        _darkThemeCheck.ForeColor = _darkTheme ? Color.White : text;
+
+        _detailTitle.ForeColor = _darkTheme ? Color.FromArgb(244, 247, 250) : text;
+        _detailRisk.ForeColor = _darkTheme ? Color.FromArgb(117, 173, 255) : Blue;
+        _detailLocation.ForeColor = _darkTheme ? Color.FromArgb(185, 198, 219) : muted;
+
+        foreach (var label in _detailAccentLabels)
+        {
+            label.ForeColor = _darkTheme ? Color.FromArgb(82, 210, 214) : Cyan;
+        }
+
+        foreach (var label in _detailBodyLabels)
+        {
+            label.ForeColor = _darkTheme ? Color.FromArgb(214, 223, 236) : text;
+        }
+
+        _healthTitle.ForeColor = Color.White;
+        _healthSubtitle.ForeColor = Color.FromArgb(198, 210, 228);
+    }
+
+    private void ApplyToRoundedPanels(Control parent, Color surface, Color surfaceAlt, Color text, Color muted)
+    {
+        foreach (Control control in parent.Controls)
+        {
+            if (control is RoundedPanel panel)
+            {
+                panel.BackColor = panel == _detailCard
+                    ? (_darkTheme ? Color.FromArgb(31, 44, 66) : Color.FromArgb(240, 246, 252))
+                    : surface;
+            }
+            else if (control is Panel p)
+            {
+                p.BackColor = Color.Transparent;
+            }
+            else if (control is TableLayoutPanel t)
+            {
+                t.BackColor = Color.Transparent;
+            }
+            else if (control is Label label)
+            {
+                if (label == _healthTitle || label == _healthSubtitle)
+                {
+                    // keep
+                }
+                else if (_detailAccentLabels.Contains(label))
+                {
+                    label.ForeColor = _darkTheme ? Color.FromArgb(82, 210, 214) : Cyan;
+                }
+                else if (_detailBodyLabels.Contains(label) || label == _detailTitle || label == _detailRisk || label == _detailLocation)
+                {
+                    // handled separately
+                }
+                else if (label.Font.Style.HasFlag(FontStyle.Bold) || label.Font.Name.Contains("Semibold", StringComparison.OrdinalIgnoreCase))
+                {
+                    label.ForeColor = text;
+                }
+                else
+                {
+                    label.ForeColor = muted;
+                }
+            }
+            else if (control is CheckBox checkBox)
+            {
+                checkBox.BackColor = Color.Transparent;
+                checkBox.ForeColor = text;
+            }
+
+            ApplyToRoundedPanels(control, surface, surfaceAlt, text, muted);
+        }
+
+        if (_sidebarHost?.Controls.Count > 0 && _sidebarHost.Controls[0] is RoundedPanel sidebar)
+        {
+            sidebar.BackColor = DarkSurface;
+            foreach (Control child in sidebar.Controls)
+            {
+                child.BackColor = DarkSurface;
+            }
+        }
+    }
+
+    private static void ApplyGridTheme(DataGridView grid, Color surface, Color surfaceAlt, Color text, Color muted)
+    {
+        grid.BackgroundColor = surface;
+        grid.GridColor = Color.FromArgb(90, 105, 128);
+        grid.DefaultCellStyle.BackColor = surface;
+        grid.DefaultCellStyle.ForeColor = text;
+        grid.DefaultCellStyle.SelectionBackColor = Color.FromArgb(46, 85, 128);
+        grid.DefaultCellStyle.SelectionForeColor = Color.White;
+        grid.ColumnHeadersDefaultCellStyle.BackColor = surfaceAlt;
+        grid.ColumnHeadersDefaultCellStyle.ForeColor = text;
+        grid.RowsDefaultCellStyle.BackColor = surface;
+        grid.RowsDefaultCellStyle.ForeColor = text;
+        grid.AlternatingRowsDefaultCellStyle.BackColor = surfaceAlt;
+        grid.AlternatingRowsDefaultCellStyle.ForeColor = text;
+    }
+
+    private static string ToRiskText(RiskLevel risk)
     {
         return risk switch
         {
-            RiskLevel.High => "Р’С‹СЃРѕРєРёР№",
-            RiskLevel.Medium => "РЎСЂРµРґРЅРёР№",
-            RiskLevel.Low => "РќРёР·РєРёР№",
-            _ => "РРЅС„Рѕ"
+            RiskLevel.High => "Высокий",
+            RiskLevel.Medium => "Средний",
+            RiskLevel.Low => "Низкий",
+            _ => "Инфо"
         };
     }
+
+    private static string BuildWhyText(SecurityFinding finding)
+    {
+        return finding.Details;
+    }
+
+    private static string BuildDangerText(SecurityFinding finding)
+    {
+        return finding.Risk switch
+        {
+            RiskLevel.High => "Такую находку лучше проверять сразу: она может ослаблять защиту или запускать подозрительные элементы автоматически.",
+            RiskLevel.Medium => "Это не всегда вредоносно, но требует ручной проверки происхождения и назначения.",
+            RiskLevel.Low => "Скорее всего влияние небольшое, но оно может замедлять систему или создавать лишний шум.",
+            _ => "Информационная находка, полезна для понимания состояния системы."
+        };
+    }
+
+    private static string BuildActionText(SecurityFinding finding)
+    {
+        if (finding.Category.Contains("Автозагрузка", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Проверьте, нужен ли этот элемент при запуске Windows. Если нет — отключите его и посмотрите, исчезнет ли проблема.";
+        }
+
+        if (finding.Category.Contains("Процессы", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Проверьте цифровую подпись, путь запуска и источник файла. Если программа незнакома — завершите процесс и изучите файл отдельно.";
+        }
+
+        if (finding.Category.Contains("Файлы", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Проверьте происхождение файла. Если он появился не из понятного источника — удаляйте только после дополнительной проверки.";
+        }
+
+        return "Начните с проверки происхождения находки, затем решите, отключать ли ее, удалять или оставить как безопасную.";
+    }
+
+    private static string BuildIgnoreText(SecurityFinding finding)
+    {
+        return finding.Risk switch
+        {
+            RiskLevel.High => "Игнорировать стоит только если вы точно уверены в происхождении файла или настройки и понимаете, почему она здесь.",
+            RiskLevel.Medium => "Можно игнорировать, если путь, программа и поведение вам знакомы и ожидаемы.",
+            RiskLevel.Low => "Да, если это известный установщик, временный файл или обычный рабочий след программы.",
+            _ => "Эту запись можно оставить как справочную, если она не мешает работе."
+        };
+    }
+
+    private List<ScanHistoryEntry> LoadHistory()
+    {
+        try
+        {
+            var path = GetHistoryPath();
+            if (!File.Exists(path))
+            {
+                return [];
+            }
+
+            return JsonSerializer.Deserialize<List<ScanHistoryEntry>>(File.ReadAllText(path)) ?? [];
+        }
+        catch
+        {
+            return [];
+        }
+    }
+
+    private void SaveHistory()
+    {
+        try
+        {
+            var path = GetHistoryPath();
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllText(path, JsonSerializer.Serialize(_history));
+        }
+        catch
+        {
+            // ignore local persistence errors
+        }
+    }
+
+    private static string GetHistoryPath()
+    {
+        return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PC Guardian", "scan-history.json");
+    }
+
+    private sealed record ScanHistoryEntry(DateTime FinishedAt, int High, int Medium, int Low, int FilesChecked, int TotalRisks, string Change);
 
     private sealed class ActionButton : Button
     {
         private readonly Color _baseColor;
 
-        public ActionButton(string text, Color color)
+        public ActionButton(string text, Color baseColor)
         {
-            _baseColor = color;
+            _baseColor = baseColor;
             Text = text;
             Width = 142;
             Height = 44;
+            Margin = new Padding(0, 0, 10, 0);
             FlatStyle = FlatStyle.Flat;
             FlatAppearance.BorderSize = 0;
-            BackColor = color;
-            ForeColor = Color.White;
-            Font = new Font("Segoe UI Semibold", 9.3F);
-            Margin = new Padding(0, 0, 10, 0);
-            UseVisualStyleBackColor = false;
             Cursor = Cursors.Hand;
+            ForeColor = Color.White;
+            Font = new Font("Segoe UI Semibold", 9.5F);
+            BackColor = baseColor;
+            UseVisualStyleBackColor = false;
         }
 
         protected override void OnEnabledChanged(EventArgs e)
         {
             base.OnEnabledChanged(e);
-            BackColor = Enabled ? _baseColor : Color.FromArgb(174, 184, 197);
-            ForeColor = Enabled ? Color.White : Color.FromArgb(235, 239, 244);
+            BackColor = Enabled ? _baseColor : Color.FromArgb(153, 166, 185);
+            ForeColor = Enabled ? Color.White : Color.FromArgb(43, 52, 67);
         }
     }
 
@@ -1260,11 +1284,8 @@ public sealed class MainForm : Form
         private readonly Label _value = new();
 
         [Browsable(false)]
-
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-
         public string Value
-
         {
             get => _value.Text;
             set => _value.Text = value;
@@ -1272,48 +1293,57 @@ public sealed class MainForm : Form
 
         public MetricCard(string title, Color accent)
         {
-            Width = 160;
-            Height = 82;
-            BackColor = Surface;
             Radius = 8;
-            Margin = new Padding(0, 0, 12, 0);
-            Padding = new Padding(16, 12, 12, 10);
-            Controls.Add(new Panel { Dock = DockStyle.Left, Width = 4, BackColor = accent });
+            Width = 100;
+            Height = 82;
+            Margin = new Padding(0, 0, 10, 0);
+            Padding = new Padding(18, 13, 16, 12);
+
+            Controls.Add(new Panel
+            {
+                Dock = DockStyle.Left,
+                Width = 4,
+                BackColor = accent
+            });
             Controls.Add(new Label
             {
-                AutoSize = true,
                 Text = title,
+                AutoSize = true,
                 Location = new Point(18, 13),
-                ForeColor = Muted,
+                ForeColor = LightMuted,
                 Font = new Font("Segoe UI", 9.3F)
             });
-            _value.AutoSize = true;
+
             _value.Text = "0";
             _value.Location = new Point(17, 37);
             _value.Font = new Font("Segoe UI Semibold", 21F);
-            _value.ForeColor = Ink;
+            _value.ForeColor = LightText;
+            _value.AutoSize = true;
             Controls.Add(_value);
         }
     }
 
     private class RoundedPanel : Panel
     {
-        private Region? _cachedRegion;
-        private Size _lastSize;
+        private int _radius = 10;
 
+        [Browsable(false)]
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        public int Radius { get; set; } = 8;
+        public int Radius
+        {
+            get => _radius;
+            set
+            {
+                _radius = value;
+                UpdateRegion();
+                Invalidate();
+            }
+        }
 
         public RoundedPanel()
         {
-            SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw | ControlStyles.UserPaint, true);
             DoubleBuffered = true;
-        }
-
-        protected override void OnResize(EventArgs eventargs)
-        {
-            base.OnResize(eventargs);
-            UpdateRegion();
+            Resize += (_, _) => UpdateRegion();
         }
 
         protected override void OnHandleCreated(EventArgs e)
@@ -1324,80 +1354,39 @@ public sealed class MainForm : Form
 
         protected override void OnPaint(PaintEventArgs e)
         {
-            e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-            using var path = CreatePath();
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
             using var brush = new SolidBrush(BackColor);
+            using var path = BuildPath(ClientRectangle, _radius);
             e.Graphics.FillPath(brush, path);
-            using var pen = new Pen(BackColor);
-            e.Graphics.DrawPath(pen, path);
-        }
-
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                _cachedRegion?.Dispose();
-            }
-            base.Dispose(disposing);
+            base.OnPaint(e);
         }
 
         private void UpdateRegion()
         {
-            if (!IsHandleCreated || ClientSize.Width <= 1 || ClientSize.Height <= 1)
+            if (Width <= 0 || Height <= 0)
             {
                 return;
             }
 
-            if (_lastSize == ClientSize && _cachedRegion is not null)
-            {
-                return;
-            }
-
-            _cachedRegion?.Dispose();
-            using var path = CreatePath();
-            _cachedRegion = new Region(path);
-            Region = _cachedRegion.Clone();
-            _lastSize = ClientSize;
-            Invalidate();
+            using var path = BuildPath(new Rectangle(0, 0, Width, Height), _radius);
+            Region = new Region(path);
         }
 
-        private System.Drawing.Drawing2D.GraphicsPath CreatePath()
+        private static GraphicsPath BuildPath(Rectangle rect, int radius)
         {
-            var path = new System.Drawing.Drawing2D.GraphicsPath();
-            var rect = ClientRectangle;
-            rect.Width -= 1;
-            rect.Height -= 1;
-            var radius = Math.Min(Radius, Math.Max(1, Math.Min(rect.Width, rect.Height) / 2));
-            var diameter = radius * 2;
-            path.AddArc(rect.X, rect.Y, diameter, diameter, 180, 90);
-            path.AddArc(rect.Right - diameter, rect.Y, diameter, diameter, 270, 90);
-            path.AddArc(rect.Right - diameter, rect.Bottom - diameter, diameter, diameter, 0, 90);
-            path.AddArc(rect.X, rect.Bottom - diameter, diameter, diameter, 90, 90);
+            var path = new GraphicsPath();
+            var diameter = Math.Max(1, radius * 2);
+            var arc = new Rectangle(rect.Location, new Size(diameter, diameter));
+
+            path.AddArc(arc, 180, 90);
+            arc.X = rect.Right - diameter;
+            path.AddArc(arc, 270, 90);
+            arc.Y = rect.Bottom - diameter;
+            path.AddArc(arc, 0, 90);
+            arc.X = rect.Left;
+            path.AddArc(arc, 90, 90);
             path.CloseFigure();
             return path;
         }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
