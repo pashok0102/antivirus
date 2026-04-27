@@ -67,6 +67,9 @@ public sealed class MainForm : Form
     private TableLayoutPanel? _overviewLayout;
     private TableLayoutPanel? _findingsLayout;
     private FlowLayoutPanel? _metricsLayout;
+    private RoundedPanel? _headerCard;
+    private RoundedPanel? _headerHealthCard;
+    private RoundedPanel? _actionsCard;
     private Control? _overviewPage;
     private Control? _recommendationsPage;
     private Control? _historyPage;
@@ -84,10 +87,10 @@ public sealed class MainForm : Form
         Text = "PC Guardian";
         ClientSize = new Size(1180, 760);
         MinimumSize = new Size(1180, 760);
-        MaximumSize = Screen.PrimaryScreen?.WorkingArea.Size ?? Size.Empty;
+        MaximumSize = new Size(1180, 760);
         StartPosition = FormStartPosition.CenterScreen;
         FormBorderStyle = FormBorderStyle.FixedSingle;
-        MaximizeBox = true;
+        MaximizeBox = false;
         MinimizeBox = true;
         Font = new Font("Segoe UI", 10F);
         Padding = new Padding(18);
@@ -286,6 +289,7 @@ public sealed class MainForm : Form
             Padding = new Padding(28, 22, 28, 22),
             Margin = new Padding(0, 0, 0, 14)
         };
+        _headerCard = card;
 
         var layout = new TableLayoutPanel
         {
@@ -314,14 +318,6 @@ public sealed class MainForm : Form
             Font = new Font("Segoe UI Semibold", 25F),
             Location = new Point(78, 2)
         });
-        brand.Controls.Add(new Label
-        {
-            Text = "Desktop-анализатор безопасности компьютера",
-            AutoSize = true,
-            ForeColor = Color.FromArgb(203, 213, 225),
-            Font = new Font("Segoe UI", 10.5F),
-            Location = new Point(82, 56)
-        });
         layout.Controls.Add(brand, 0, 0);
 
         var health = new RoundedPanel
@@ -331,6 +327,7 @@ public sealed class MainForm : Form
             Padding = new Padding(18, 12, 18, 12),
             Margin = new Padding(14, 0, 0, 0)
         };
+        _headerHealthCard = health;
         _healthTitle.Dock = DockStyle.Top;
         _healthTitle.Height = 32;
         _healthTitle.Font = new Font("Segoe UI Semibold", 14.5F);
@@ -358,15 +355,16 @@ public sealed class MainForm : Form
             BackColor = Color.Transparent
         };
         _dashboardLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        _dashboardLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 452));
+        _dashboardLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 408));
 
         var actionsCard = new RoundedPanel
         {
             Dock = DockStyle.Fill,
             Radius = 10,
-            Padding = new Padding(18, 16, 18, 14),
+            Padding = new Padding(12, 16, 12, 14),
             Margin = new Padding(0, 0, 14, 0)
         };
+        _actionsCard = actionsCard;
 
         var actionsLayout = new FlowLayoutPanel
         {
@@ -377,6 +375,18 @@ public sealed class MainForm : Form
         };
         _cancelButton.Enabled = false;
         _exportButton.Enabled = false;
+        _quickScanButton.Width = 118;
+        _deepScanButton.Width = 118;
+        _cancelButton.Width = 96;
+        _exportButton.Width = 118;
+        _quickScanButton.Height = 42;
+        _deepScanButton.Height = 42;
+        _cancelButton.Height = 42;
+        _exportButton.Height = 42;
+        _quickScanButton.Margin = new Padding(0, 0, 5, 0);
+        _deepScanButton.Margin = new Padding(0, 0, 5, 0);
+        _cancelButton.Margin = new Padding(0, 0, 5, 0);
+        _exportButton.Margin = new Padding(0, 0, 0, 0);
 
         _recommendationsOnlyCheck.Text = "Только рекомендации";
         _recommendationsOnlyCheck.Width = 180;
@@ -388,8 +398,7 @@ public sealed class MainForm : Form
             _quickScanButton,
             _deepScanButton,
             _cancelButton,
-            _exportButton,
-            _recommendationsOnlyCheck
+            _exportButton
         ]);
         actionsCard.Controls.Add(actionsLayout);
 
@@ -616,7 +625,7 @@ public sealed class MainForm : Form
             Margin = new Padding(0)
         };
         content.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
-        content.RowStyles.Add(new RowStyle(SizeType.Absolute, 64));
+        content.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
         content.RowStyles.Add(new RowStyle(SizeType.Absolute, 64));
         content.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
@@ -624,6 +633,10 @@ public sealed class MainForm : Form
         _darkThemeCheck.AutoSize = true;
         _darkThemeCheck.Font = new Font("Segoe UI Semibold", 10F);
         _darkThemeCheck.Margin = new Padding(0, 6, 0, 0);
+        _recommendationsOnlyCheck.Text = "Только рекомендации";
+        _recommendationsOnlyCheck.AutoSize = true;
+        _recommendationsOnlyCheck.Margin = new Padding(0, 6, 0, 0);
+        _recommendationsOnlyCheck.Font = new Font("Segoe UI Semibold", 10F);
 
         var note1 = new Label
         {
@@ -639,8 +652,9 @@ public sealed class MainForm : Form
         };
 
         content.Controls.Add(_darkThemeCheck, 0, 0);
-        content.Controls.Add(note1, 0, 1);
-        content.Controls.Add(note2, 0, 2);
+        content.Controls.Add(_recommendationsOnlyCheck, 0, 1);
+        content.Controls.Add(note1, 0, 2);
+        content.Controls.Add(note2, 0, 3);
         AttachSectionContent(panel, content);
         return panel;
     }
@@ -1012,19 +1026,19 @@ public sealed class MainForm : Form
 
         if (_dashboardLayout is not null)
         {
-            var metricsWidth = isMaximized ? 500 : 452;
+            var metricsWidth = 408;
             _dashboardLayout.ColumnStyles[1].Width = metricsWidth;
         }
 
         if (_metricsLayout is not null)
         {
-            var width = isMaximized ? 112 : 100;
-            var height = isMaximized ? 86 : 82;
+            var width = 90;
+            var height = 82;
             foreach (Control control in _metricsLayout.Controls)
             {
                 control.Width = width;
                 control.Height = height;
-                control.Margin = new Padding(0, 0, 10, 0);
+                control.Margin = new Padding(0, 0, 8, 0);
             }
         }
 
@@ -1084,7 +1098,13 @@ public sealed class MainForm : Form
         {
             if (control is RoundedPanel panel)
             {
-                panel.BackColor = panel == _detailCard
+                panel.BackColor = panel == _headerCard
+                    ? DarkSurface
+                    : panel == _headerHealthCard
+                        ? DarkSurfaceAlt
+                        : panel == _actionsCard
+                            ? (_darkTheme ? DarkSurface : Color.FromArgb(244, 248, 252))
+                            : panel == _detailCard
                     ? (_darkTheme ? Color.FromArgb(31, 44, 66) : Color.FromArgb(240, 246, 252))
                     : surface;
             }
@@ -1131,10 +1151,62 @@ public sealed class MainForm : Form
         if (_sidebarHost?.Controls.Count > 0 && _sidebarHost.Controls[0] is RoundedPanel sidebar)
         {
             sidebar.BackColor = DarkSurface;
-            foreach (Control child in sidebar.Controls)
+            ApplySidebarTheme(sidebar);
+        }
+
+        if (_headerCard is not null)
+        {
+            ApplyHeaderTheme(_headerCard);
+        }
+    }
+
+    private static void ApplySidebarTheme(Control parent)
+    {
+        foreach (Control child in parent.Controls)
+        {
+            if (child is RoundedPanel rounded)
+            {
+                rounded.BackColor = DarkSurfaceAlt;
+            }
+            else if (child is Panel or TableLayoutPanel or FlowLayoutPanel)
             {
                 child.BackColor = DarkSurface;
             }
+            else if (child is Label label)
+            {
+                label.ForeColor = label.Text == "Security analyzer"
+                    ? DarkMuted
+                    : Color.FromArgb(226, 235, 247);
+            }
+
+            ApplySidebarTheme(child);
+        }
+    }
+
+    private void ApplyHeaderTheme(Control parent)
+    {
+        foreach (Control child in parent.Controls)
+        {
+            if (child is Panel or TableLayoutPanel)
+            {
+                child.BackColor = Color.Transparent;
+            }
+            else if (child is RoundedPanel rounded)
+            {
+                rounded.BackColor = rounded == _headerHealthCard ? DarkSurfaceAlt : DarkSurface;
+            }
+            else if (child is Label label)
+            {
+                label.ForeColor = label == _healthSubtitle
+                    ? Color.FromArgb(198, 210, 228)
+                    : label == _healthTitle
+                        ? Color.White
+                        : label.Font.Size >= 20
+                            ? Color.White
+                            : Color.FromArgb(203, 213, 225);
+            }
+
+            ApplyHeaderTheme(child);
         }
     }
 
@@ -1259,14 +1331,14 @@ public sealed class MainForm : Form
         {
             _baseColor = baseColor;
             Text = text;
-            Width = 142;
-            Height = 44;
-            Margin = new Padding(0, 0, 10, 0);
+            Width = 118;
+            Height = 42;
+            Margin = new Padding(0, 0, 5, 0);
             FlatStyle = FlatStyle.Flat;
             FlatAppearance.BorderSize = 0;
             Cursor = Cursors.Hand;
             ForeColor = Color.White;
-            Font = new Font("Segoe UI Semibold", 9.5F);
+            Font = new Font("Segoe UI Semibold", 8.9F);
             BackColor = baseColor;
             UseVisualStyleBackColor = false;
         }
@@ -1294,10 +1366,10 @@ public sealed class MainForm : Form
         public MetricCard(string title, Color accent)
         {
             Radius = 8;
-            Width = 100;
+            Width = 90;
             Height = 82;
-            Margin = new Padding(0, 0, 10, 0);
-            Padding = new Padding(18, 13, 16, 12);
+            Margin = new Padding(0, 0, 8, 0);
+            Padding = new Padding(14, 13, 12, 12);
 
             Controls.Add(new Panel
             {
@@ -1309,13 +1381,13 @@ public sealed class MainForm : Form
             {
                 Text = title,
                 AutoSize = true,
-                Location = new Point(18, 13),
+                Location = new Point(14, 13),
                 ForeColor = LightMuted,
                 Font = new Font("Segoe UI", 9.3F)
             });
 
             _value.Text = "0";
-            _value.Location = new Point(17, 37);
+            _value.Location = new Point(14, 37);
             _value.Font = new Font("Segoe UI Semibold", 21F);
             _value.ForeColor = LightText;
             _value.AutoSize = true;
